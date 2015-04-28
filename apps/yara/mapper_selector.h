@@ -241,7 +241,7 @@ inline void _enumeratePairs(PairsSelector<TSpec, Traits> & me, TMatches const & 
 
     for (; leftIt != leftEnd; ++leftIt)
         for (TIterator rightIt = rightBegin; rightIt != rightEnd; ++rightIt)
-             if (getTemplateDeviation(*leftIt, *rightIt, me.options.libraryLength) <= me.options.libraryError)
+             if (getLibraryDeviation(*leftIt, *rightIt, me.options.libraryLength) <= me.options.libraryError)
                 _selectBestPair(me, *leftIt, *rightIt);
 }
 
@@ -259,8 +259,8 @@ inline void _selectBestPair(PairsSelector<TSpec, Traits> & me, TMatch const & le
 
     if (getErrors(left, right) < getErrors(bestLeft, bestRight) ||
         (getErrors(left, right) == getErrors(bestLeft, bestRight) &&
-            getTemplateDeviation(left, right, me.options.libraryLength) <=
-            getTemplateDeviation(bestLeft, bestRight, me.options.libraryLength)))
+            getLibraryDeviation(left, right, me.options.libraryLength) <=
+            getLibraryDeviation(bestLeft, bestRight, me.options.libraryLength)))
     {
         bestLeft = left;
         bestRight = right;
