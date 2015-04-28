@@ -37,7 +37,6 @@
 #ifndef APP_YARA_BITS_MATCHES_H_
 #define APP_YARA_BITS_MATCHES_H_
 
-
 namespace seqan {
 
 // ============================================================================

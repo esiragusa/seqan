@@ -264,7 +264,7 @@ parseCommandLine(Options & options, ArgumentParser & parser, int argc, char cons
     getOptionValue(options.rabema, parser, "output-rabema");
 
     // Parse mapping options.
-        unsigned errorRate;
+    unsigned errorRate;
     if (getOptionValue(errorRate, parser, "error-rate"))
         options.errorRate = errorRate / 100.0;
 
