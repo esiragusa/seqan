@@ -205,6 +205,16 @@ inline void appendReadGroup(BamAlignmentRecord & record, TString const & rg)
 }
 
 // ----------------------------------------------------------------------------
+// Function getMapq()
+// ----------------------------------------------------------------------------
+
+template <typename TProb>
+inline unsigned getMapq(TProb p)
+{
+    return std::round(-10.0 * std::log10(1.0 - std::min(p, 0.99999)));
+}
+
+// ----------------------------------------------------------------------------
 // Function _writeMatchesImpl()
 // ----------------------------------------------------------------------------
 // Writes one block of matches.
@@ -233,7 +243,7 @@ inline void _writeUnmappedRead(MatchesWriter<TSpec, Traits> & me, TReadId readId
     clear(me.record);
     _fillReadName(me, readId);
     _fillReadSeqQual(me, readId);
-    _fillMapq(me, 0u);
+    me.record.mapQ = 0;
     _fillMateInfo(me, readId);
     appendReadGroup(me.record, me.options.readGroup);
     me.record.flag |= BAM_FLAG_UNMAPPED;
@@ -267,7 +277,12 @@ inline void _writeMappedReadImpl(MatchesWriter<TSpec, Traits> & me, TReadId read
 
     TMatches const & matches = me.matchesSet[readId];
     TSize bestCount = countMatchesInBestStratum(matches);
-    _fillReadInfo(me, matches, bestCount);
+    TSize subCount = length(matches) - bestCount;
+    _fillReadInfo(me, bestCount, subCount);
+
+    double errorRate = getErrorRate(primary, me.reads.seqs);
+    double prob = getProbOptimalMatch(errorRate, bestCount, subCount);
+    me.record.mapQ = getMapq(prob);
 
     // Find the primary match in the list of matches.
     TIter it = findMatch(matches, primary);
@@ -305,7 +320,12 @@ inline void _writeMappedReadImpl(MatchesWriter<TSpec, Traits> & me, TReadId read
 
     TMatches const & matches = me.matchesSet[readId];
     TSize bestCount = countMatchesInBestStratum(matches);
-    _fillReadInfo(me, matches, bestCount);
+    TSize subCount = length(matches) - bestCount;
+    _fillReadInfo(me, bestCount, subCount);
+
+    double errorRate = getErrorRate(primary, me.reads.seqs);
+    double prob = getProbOptimalMatch(errorRate, bestCount, subCount);
+    me.record.mapQ = getMapq(prob);
 
     // Find the primary match in the list of matches.
     TIter it = findMatch(matches, primary);
@@ -451,7 +471,8 @@ inline void _fillMateInfoImpl(MatchesWriter<TSpec, Traits> & me, TReadId readId,
 template <typename TSpec, typename Traits, typename TMatch>
 inline void _fillMatePosition(MatchesWriter<TSpec, Traits> & me, TMatch const & match, TMatch const & mate)
 {
-    me.record.flag |= BAM_FLAG_ALL_PROPER;
+    if (orientationEqual(match, mate, me.options.libraryOrientation))
+        me.record.flag |= BAM_FLAG_ALL_PROPER;
 
     if (onReverseStrand(mate))
         me.record.flag |= BAM_FLAG_NEXT_RC;
@@ -469,27 +490,14 @@ inline void _fillMatePosition(MatchesWriter<TSpec, Traits> & me, TMatch const & 
 }
 
 // ----------------------------------------------------------------------------
-// Function _fillMapq()
-// ----------------------------------------------------------------------------
-
-template <typename TSpec, typename Traits, typename TCount>
-inline void _fillMapq(MatchesWriter<TSpec, Traits> & me, TCount count)
-{
-    static const unsigned char MAPQ[] = { 0, 40, 3, 2, 1, 1, 1, 1, 1, 1, 0 };
-
-    me.record.mapQ = MAPQ[_min(count, 10u)];
-}
-
-// ----------------------------------------------------------------------------
 // Function _fillReadInfo()
 // ----------------------------------------------------------------------------
 
-template <typename TSpec, typename Traits, typename TMatches, typename TCount>
-inline void _fillReadInfo(MatchesWriter<TSpec, Traits> & me, TMatches const & matches, TCount bestCount)
+template <typename TSpec, typename Traits, typename TCount>
+inline void _fillReadInfo(MatchesWriter<TSpec, Traits> & me, TCount bestCount, TCount subCount)
 {
-    _fillMapq(me, bestCount);
     appendCooptimalCount(me.record, bestCount);
-    appendSuboptimalCount(me.record, length(matches) - bestCount);
+    appendSuboptimalCount(me.record, subCount);
     appendType(me.record, bestCount == 1);
     appendReadGroup(me.record, me.options.readGroup);
     // Set number of secondary alignments and hit index.
