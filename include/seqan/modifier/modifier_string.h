@@ -107,12 +107,16 @@ public:
     TCargo_ _cargo;
 
     // Default constructor.
-    ModifiedString() : _host(), _cargo()
+    ModifiedString() :
+        _host(),
+        _cargo()
     {}
 
     // Construct with the actual host.
     explicit
-    ModifiedString(typename Parameter_<THost>::Type host) : _host(_toPointer(host)), _cargo()
+    ModifiedString(typename Parameter_<THost>::Type host) :
+        _host(_toPointer(host)),
+        _cargo()
     {}
 
     // Constructor for creating a ModifiedString with const host from a non-const host.
@@ -120,7 +124,8 @@ public:
     explicit
     ModifiedString(THost_ & host,
                    SEQAN_CTOR_ENABLE_IF(IsConstructible<THost, THost_>)) :
-            _host(_toPointer(host)), _cargo()
+            _host(_toPointer(host)),
+            _cargo()
     {
         ignoreUnusedVariableWarning(dummy);
     }
@@ -134,7 +139,8 @@ public:
                    SEQAN_CTOR_ENABLE_IF(IsAnInnerHost<
                                             typename RemoveReference<THost>::Type,
                                             typename RemoveReference<THost_>::Type >)) :
-            _host(std::forward<THost_>(host)), _cargo()
+            _host(std::forward<THost_>(host)),
+            _cargo()
     {
         ignoreUnusedVariableWarning(dummy);
     }
@@ -146,7 +152,8 @@ public:
     explicit
     ModifiedString(THost_ & host,
                    SEQAN_CTOR_ENABLE_IF(IsAnInnerHost<THost, THost_>)) :
-            _host(host), _cargo()
+            _host(host),
+            _cargo()
     {
         ignoreUnusedVariableWarning(dummy);
     }
@@ -155,7 +162,8 @@ public:
     explicit
     ModifiedString(THost_ const & host,
                    SEQAN_CTOR_ENABLE_IF(IsAnInnerHost<THost, THost_ const>)) :
-            _host(host), _cargo()
+            _host(host),
+            _cargo()
     {
         ignoreUnusedVariableWarning(dummy);
     }
@@ -178,7 +186,7 @@ public:
 
     ModifiedString & operator= (THost & other)
     {
-        _host = _toPointer(other);
+        assign(*this, other);
         return *this;
     }
 };
@@ -554,14 +562,14 @@ inline void setHost(ModifiedString<THost, TSpec> & me, THost const & host)
 // --------------------------------------------------------------------------
 
 template <typename THost, typename TSpec>
-inline typename Reference<typename Cargo<ModifiedString<THost, TSpec> >::Type >::Type
+inline typename Cargo<ModifiedString<THost, TSpec> >::Type &
 cargo(ModifiedString<THost, TSpec> & me)
 {
     return me._cargo;
 }
 
 template <typename THost, typename TSpec>
-inline typename Reference<typename Cargo<ModifiedString<THost, TSpec> const>::Type >::Type
+inline typename Cargo<ModifiedString<THost, TSpec> const>::Type &
 cargo(ModifiedString<THost, TSpec> const & me)
 {
     return me._cargo;
@@ -850,6 +858,17 @@ inline void const *
 getObjectId(ModifiedString<THost, TSpec> const & me)
 {
     return getObjectId(host(me));
+}
+
+// ----------------------------------------------------------------------------
+// Function assign()
+// ----------------------------------------------------------------------------
+
+template <typename THost, typename TSpec, typename TOtherHost, typename TOtherSpec>
+inline void assign(ModifiedString<THost, TSpec> & me, ModifiedString<TOtherHost, TOtherSpec> const & other)
+{
+    setHost(me, host(other));
+    assign(cargo(me), cargo(other));
 }
 
 // --------------------------------------------------------------------------
