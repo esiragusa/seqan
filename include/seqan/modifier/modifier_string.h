@@ -871,6 +871,17 @@ inline void assign(ModifiedString<THost, TSpec> & me, ModifiedString<TOtherHost,
     assign(cargo(me), cargo(other));
 }
 
+// ----------------------------------------------------------------------------
+// Function swap()
+// ----------------------------------------------------------------------------
+
+template <typename THost, typename TSpec, typename TOtherHost, typename TOtherSpec>
+inline void swap(ModifiedString<THost, TSpec> & me, ModifiedString<TOtherHost, TOtherSpec> & other)
+{
+    std::swap(host(me), host(other));
+    std::swap(cargo(me), cargo(other));
+}
+
 // --------------------------------------------------------------------------
 // Function open()
 // --------------------------------------------------------------------------
