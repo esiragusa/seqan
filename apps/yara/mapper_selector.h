@@ -51,11 +51,12 @@ struct PairsSelector
 {
     typedef typename Traits::TReadsContext     TReadsContext;
     typedef typename Traits::TReadSeqs         TReadSeqs;
-    typedef typename Traits::TMatchesSet       TMatchesSet;
     typedef typename Traits::TMatches          TMatches;
+    typedef typename Traits::TMatchesView      TMatchesView;
+    typedef typename Traits::TMatchesSet       TMatchesSet;
 
     // Shared-memory read-write data.
-    TMatches &          pairs;
+    TMatchesView &      pairs;
     TReadsContext &     ctx;
 
     // Shared-memory read-only data.
@@ -64,7 +65,7 @@ struct PairsSelector
     TMatchesSet const & secondMatchesSet;
     Options const &     options;
 
-    PairsSelector(TMatches & pairs,
+    PairsSelector(TMatchesView & pairs,
                   TReadsContext & ctx,
                   TReadSeqs const & readSeqs,
                   TMatchesSet const & firstMatchesSet,

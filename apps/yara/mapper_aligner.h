@@ -51,6 +51,7 @@ struct MatchesAligner
     typedef typename Traits::TContigSeqs       TContigSeqs;
     typedef typename Traits::TReadSeqs         TReadSeqs;
     typedef typename Traits::TMatches          TMatches;
+    typedef typename Traits::TMatchesView      TMatchesView;
     typedef typename Traits::TCigar            TCigar;
     typedef typename Traits::TCigarSet         TCigarSet;
     typedef typename Traits::TCigarLimits      TCigarLimits;
@@ -67,7 +68,7 @@ struct MatchesAligner
     // Shared-memory read-write data.
     TCigarSet &             cigarSet;
     TCigarLimits &          cigarLimits;
-    TMatches &              matches;
+    TMatchesView &          matches;
 
     // Shared-memory read-only data.
     TContigSeqs const &     contigSeqs;
@@ -76,7 +77,7 @@ struct MatchesAligner
 
     MatchesAligner(TCigarSet & cigarSet,
                    TCigarLimits & cigarLimits,
-                   TMatches & matches,
+                   TMatchesView & matches,
                    TContigSeqs const & contigSeqs,
                    TReadSeqs const & readSeqs,
                    Options const & options) :
