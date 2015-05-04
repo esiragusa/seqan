@@ -464,7 +464,7 @@ inline void openOutputFile(Mapper<TSpec, TConfig> & me)
 
     // Fill contig lengths.
     resize(contigLengths(context(me.outputFile)), length(me.contigs.seqs));
-    transform(contigLengths(context(me.outputFile)), me.contigs.seqs, [&](TContigSeq const & seq) { return length(seq); });
+    transform(contigLengths(context(me.outputFile)), me.contigs.seqs, [](TContigSeq const & seq) { return length(seq); });
 
     // Write header.
     BamHeader header;
