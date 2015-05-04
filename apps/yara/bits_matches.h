@@ -275,30 +275,6 @@ struct MatchesCompactor
     }
 };
 
-// ----------------------------------------------------------------------------
-// Class MatchesPicker
-// ----------------------------------------------------------------------------
-
-template <typename TMatches>
-struct MatchesPicker
-{
-    typedef typename Value<TMatches>::Type TMatch;
-
-    Rng<MersenneTwister> rng;
-    TMatch invalid;
-
-    MatchesPicker() :
-        rng(0xABAD1DEA)
-    {
-        setInvalid(invalid);
-    }
-
-    TMatch operator() (TMatches const & matches)
-    {
-        return empty(matches) ? invalid : matches[pickRandomNumber(rng) % length(matches)];
-    }
-};
-
 // ============================================================================
 // Match Setters
 // ============================================================================
