@@ -826,6 +826,7 @@ inline void rankMatches(Mapper<TSpec, TConfig> & me, TReadSeqs const & readSeqs)
     typedef typename Size<TReadSeqs>::Type                  TReadId;
     typedef typename Size<TMatches>::Type                   TMatchesSize;
     typedef std::uniform_int_distribution<TMatchesSize>     TMatchesRnd;
+    typedef String<unsigned>                                TLibraryLengths;
 
     start(me.timer);
     // Create a position modifier of the matches from the identity permutation.
@@ -892,8 +893,9 @@ inline void rankMatches(Mapper<TSpec, TConfig> & me, TReadSeqs const & readSeqs)
     Standard(), typename TTraits::TThreading());
 
     // Collect library lengths from unique pairs.
-    String<unsigned> libraryLengths;
+    TLibraryLengths libraryLengths;
     reserve(libraryLengths, getPairsCount(readSeqs), Exact());
+    ConcurrentAppender<TLibraryLengths> libraryLengthsAppender(libraryLengths);
     forEach(seqan::Range<TReadId>(0, getPairsCount(readSeqs)), [&](TReadId pairId)
     {
         TReadId firstId = getFirstMateFwdSeqId(readSeqs, pairId);
@@ -908,7 +910,7 @@ inline void rankMatches(Mapper<TSpec, TConfig> & me, TReadSeqs const & readSeqs)
             auto const & secondMatch = front(secondMatches);
 
             if (contigEqual(firstMatch, secondMatch) && orientationEqual(firstMatch, secondMatch, LibraryOrientation()))
-                appendValue(libraryLengths, getLibraryLength(firstMatch, secondMatch));
+                appendValue(libraryLengthsAppender, getLibraryLength(firstMatch, secondMatch), Insist(), typename TTraits::TThreading());
         }
     },
     typename TTraits::TThreading());
