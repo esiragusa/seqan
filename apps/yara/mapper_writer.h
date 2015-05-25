@@ -52,6 +52,7 @@ struct MatchesWriter
     typedef typename Traits::TMatches          TMatches;
     typedef typename Traits::TMatchesSet       TMatchesSet;
     typedef typename Traits::TMatchesView      TMatchesView;
+    typedef typename Traits::TMatchesViewSet   TMatchesViewSet;
     typedef typename Traits::TCigarSet         TCigarSet;
     typedef typename Traits::TOutputFile       TOutputFile;
     typedef typename Traits::TReadsContext     TReadsContext;
@@ -65,7 +66,7 @@ struct MatchesWriter
     TOutputFile &           outputFile;
 
     // Shared-memory read-only data.
-    TMatchesSet const &     matchesSet;
+    TMatchesViewSet const & matchesSet;
     TMatchesView const &    primaryMatches;
     TCigarSet const &       cigarSet;
     TReadsContext const &   ctx;
@@ -73,7 +74,7 @@ struct MatchesWriter
     Options const &         options;
 
     MatchesWriter(TOutputFile & outputFile,
-                  TMatchesSet const & matchesSet,
+                  TMatchesViewSet const & matchesSet,
                   TMatchesView const & primaryMatches,
                   TCigarSet const & cigarSet,
                   TReadsContext const & ctx,
