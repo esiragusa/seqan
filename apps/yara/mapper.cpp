@@ -180,14 +180,13 @@ void setupArgumentParser(ArgumentParser & parser, Options const & options)
     // Setup paired-end mapping options.
     addSection(parser, "Paired-End / Mate-Pair Mapping Options");
 
-    addOption(parser, ArgParseOption("ll", "library-length", "Expected library length.", ArgParseOption::INTEGER));
-    setMinValue(parser, "library-length", "1");
-    setDefaultValue(parser, "library-length", options.libraryLength);
-
-    addOption(parser, ArgParseOption("le", "library-error", "Deviation from the expected library length.",
+    addOption(parser, ArgParseOption("ll", "library-length", "Expected library length. Default: autodetected.",
                                      ArgParseOption::INTEGER));
+    setMinValue(parser, "library-length", "1");
+
+    addOption(parser, ArgParseOption("le", "library-error", "Deviation from the expected library length. \
+                                            Default: autodetected.", ArgParseOption::INTEGER));
     setMinValue(parser, "library-error", "0");
-    setDefaultValue(parser, "library-error", options.libraryError);
 
     addOption(parser, ArgParseOption("lo", "library-orientation", "Expected orientation of the segments in the library.",
                                      ArgParseOption::STRING));

@@ -96,8 +96,8 @@ struct Options
         strataRate(0.00f),
         quick(false),
         singleEnd(true),
-        libraryLength(200),
-        libraryError(200),
+        libraryLength(),
+        libraryError(),
         libraryOrientation(FWD_REV),
 //        anchorOne(false),
         readsCount(100000),
@@ -257,7 +257,7 @@ struct Mapper
 {
     typedef MapperTraits<TSpec, TConfig>    Traits;
 
-    Options const &                     options;
+    Options                             options;
     Timer<double>                       timer;
     Stats<double>                       stats;
 
@@ -869,7 +869,7 @@ inline void rankMatches(Mapper<TSpec, TConfig> & me, TReadSeqs const & readSeqs)
     setHost(me.primaryMatches, me.matches);
     setCargo(me.primaryMatches, stringSetPositions(me.matchesSet));
 
-    // Choose primary matches.
+    // Choose primary matches among best matches.
     iterate(me.bestMatchesSet, [&](TMatchesIt const & matchesIt)
     {
         // Use one generator per thread.
@@ -882,7 +882,7 @@ inline void rankMatches(Mapper<TSpec, TConfig> & me, TReadSeqs const & readSeqs)
         {
             setPosition(me.primaryMatches, readId, length(me.matches) - 1);
         }
-        // Choose mapped reads at random.
+        // Choose match at random.
         else
         {
             TMatchesRnd rnd(0, length(value(matchesIt)) - 1);
@@ -890,6 +890,46 @@ inline void rankMatches(Mapper<TSpec, TConfig> & me, TReadSeqs const & readSeqs)
         }
     },
     Standard(), typename TTraits::TThreading());
+
+    // Collect library lengths from unique pairs.
+    String<unsigned> libraryLengths;
+    reserve(libraryLengths, getPairsCount(readSeqs), Exact());
+    forEach(seqan::Range<TReadId>(0, getPairsCount(readSeqs)), [&](TReadId pairId)
+    {
+        TReadId firstId = getFirstMateFwdSeqId(readSeqs, pairId);
+        TReadId secondId = getSecondMateFwdSeqId(readSeqs, pairId);
+
+        auto const & firstMatches = me.matchesSet[firstId];
+        auto const & secondMatches = me.matchesSet[secondId];
+
+        if (length(firstMatches) == 1 && length(secondMatches) == 1)
+        {
+            auto const & firstMatch = front(firstMatches);
+            auto const & secondMatch = front(secondMatches);
+
+            if (contigEqual(firstMatch, secondMatch) && orientationEqual(firstMatch, secondMatch, LibraryOrientation()))
+                appendValue(libraryLengths, getLibraryLength(firstMatch, secondMatch));
+        }
+    },
+    typename TTraits::TThreading());
+
+    // Remove library outliers > 6 * median.
+    unsigned libraryMedian = nthElement(libraryLengths, length(libraryLengths) / 2, typename TTraits::TThreading());
+    removeIf(libraryLengths, std::bind2nd(std::greater<unsigned>(), 6.0 * libraryMedian), typename TTraits::TThreading());
+
+    // Compute library mean.
+    unsigned librarySum = accumulate(libraryLengths, 0u, typename TTraits::TThreading());
+    float libraryMean = librarySum / static_cast<float>(length(libraryLengths));
+
+    // Compute library standard deviation.
+    String<float> libraryDiffs;
+    resize(libraryDiffs, length(libraryLengths), Exact());
+    transform(libraryDiffs, libraryLengths, std::bind2nd(std::minus<float>(), libraryMean));
+    float librarySqSum = innerProduct(libraryDiffs, 0.0f, typename TTraits::TThreading());
+    float libraryDev = std::sqrt(librarySqSum / static_cast<float>(length(libraryLengths)));
+
+    if (!me.options.libraryLength) me.options.libraryLength = std::round(libraryMean);
+    if (!me.options.libraryError) me.options.libraryError = std::round(libraryDev);
 
     // Try to pair mates.
 //    if (IsSameType<typename TConfig::TSequencing, PairedEnd>::VALUE)
@@ -942,6 +982,12 @@ inline void rankMatches(Mapper<TSpec, TConfig> & me, TReadSeqs const & readSeqs)
     {
         std::cerr << "Pairing time:\t\t\t" << me.timer << std::endl;
         std::cerr << "Paired reads:\t\t\t" << pairedReads << std::endl;
+    }
+    if (me.options.verbose > 1)
+    {
+        std::cerr << "Library median:\t\t\t" << libraryMedian << std::endl;
+        std::cerr << "Library mean:\t\t\t" << libraryMean << std::endl;
+        std::cerr << "Library stddev:\t\t\t" << libraryDev << std::endl;
     }
 }
 
