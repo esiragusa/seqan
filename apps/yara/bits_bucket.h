@@ -185,7 +185,7 @@ inline void bucket(StringSet<THost, Segment<TSpec> > & me, TKeyGetter const & ke
     partialSum(stringSetLimits(me), tag);
 
     // Positions are the shifted limits.
-    assign(stringSetPositions(me), prefix(stringSetLimits(me), length(stringSetLimits(me)) - 1));
+    assign(stringSetPositions(me), prefix(stringSetLimits(me), length(stringSetLimits(me)) - 1), Exact());
 }
 
 }
