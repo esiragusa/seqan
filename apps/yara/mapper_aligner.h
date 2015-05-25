@@ -202,7 +202,7 @@ inline void _alignMatchImpl(MatchesAligner<TSpec, Traits> & me, TMatchIt & match
     {
         int dpErrors = _align(contigGaps, readGaps, errors, TSpec());
 
-        SEQAN_ASSERT_GEQ(dpErrors, (int)errors);
+        SEQAN_ASSERT_LEQ(dpErrors, (int)errors);
         ignoreUnusedVariableWarning(dpErrors);
 
         clipSemiGlobal(contigGaps, readGaps);
