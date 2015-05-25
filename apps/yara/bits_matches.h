@@ -744,21 +744,11 @@ findMatch(TMatches const & matches, TMatch const & match)
 // Function sortMatches()
 // ----------------------------------------------------------------------------
 
-//template <typename TMatches, typename TKey>
-//inline void sortMatches(TMatches & matches)
-//{
-//    typedef typename Value<TMatches>::Type  TMatch;
-//
-//    sort(matches, MatchSorter<TMatch, TKey>());
-//}
-
-template <typename TIterator, typename TKey>
-inline void sortMatches(TIterator & it)
+template <typename TMatches, typename TKey>
+inline void sortMatches(TMatches SEQAN_FORWARD_ARG matches)
 {
-    typedef typename Value<TIterator>::Type TMatches;
     typedef typename Value<TMatches>::Type  TMatch;
 
-    TMatches matches = value(it);
     sort(matches, MatchSorter<TMatch, TKey>());
 }
 
