@@ -290,6 +290,12 @@ inline void setReadId(Match<TSpec> & me, TReadSeqs const & readSeqs, TReadSeqId 
     me.isRev = isRevReadSeq(readSeqs, readSeqId);
 }
 
+template <typename TSpec, typename TReadId>
+inline void setReadId(Match<TSpec> & me, TReadId readId)
+{
+    me.readId = readId;
+}
+
 // ----------------------------------------------------------------------------
 // Function setContigPosition()
 // ----------------------------------------------------------------------------
@@ -303,6 +309,40 @@ inline void setContigPosition(Match<TSpec> & me, TContigBegin contigBegin, TCont
     me.contigId = getValueI1(contigBegin);
     me.contigBegin = getValueI2(contigBegin);
     me.contigEnd = getValueI2(contigEnd) - getValueI2(contigBegin);
+}
+
+// ----------------------------------------------------------------------------
+// Function addContigPosition()
+// ----------------------------------------------------------------------------
+
+template <typename TSpec, typename TDelta, typename TContigSeqs>
+inline void addContigPosition(Match<TSpec> & me, TDelta delta, TContigSeqs const & contigSeqs)
+{
+    typedef typename Member<Match<TSpec>, ContigSize>::Type TContigSize;
+
+    TContigSize contigLength = length(contigSeqs[getMember(me, ContigId())]);
+    me.contigBegin = (me.contigBegin + me.contigEnd + delta < contigLength) ?
+                      me.contigBegin + delta : contigLength - me.contigEnd;
+}
+
+// ----------------------------------------------------------------------------
+// Function subContigPosition()
+// ----------------------------------------------------------------------------
+
+template <typename TSpec, typename TDelta>
+inline void subContigPosition(Match<TSpec> & me, TDelta delta)
+{
+    me.contigBegin = (me.contigBegin - delta > 0) ? me.contigBegin - delta : 0;
+}
+
+// ----------------------------------------------------------------------------
+// Function flipStrand()
+// ----------------------------------------------------------------------------
+
+template <typename TSpec>
+inline void flipStrand(Match<TSpec> & me)
+{
+    me.isRev = !me.isRev;
 }
 
 // ----------------------------------------------------------------------------
@@ -753,91 +793,76 @@ inline void sortMatches(TMatches SEQAN_FORWARD_ARG matches)
 }
 
 // ----------------------------------------------------------------------------
-// Function findSameContig()
+// Function findMates()
 // ----------------------------------------------------------------------------
-// Find the first pair of matches on the same contig.
 
-template <typename TMatchesIterator, typename TMatches>
-inline bool findSameContig(TMatchesIterator & leftIt, TMatchesIterator & rightIt,
-                           TMatches const & left, TMatches const & right)
+template <typename TMatches, typename TMatch, typename TReadSeqs, typename TContigSeqs, typename TNumber1, typename TNumber2>
+inline typename Infix<TMatches const>::Type
+findMates(TMatches const & mates, TMatch const & match, TReadSeqs const & readSeqs, TContigSeqs const & contigSeqs, TNumber1 mean, TNumber2 stdDev)
 {
-    while (!atEnd(leftIt, left) && !atEnd(rightIt, right))
+    typedef typename Iterator<TMatches const>::Type TIter;
+    typedef typename Size<TReadSeqs>::Type          TReadId;
+    typedef typename Value<TReadSeqs const>::Type   TReadSeq;
+    typedef typename Size<TReadSeq>::Type           TReadSeqSize;
+
+    TReadId mateId = getMateId(readSeqs, getMember(match, ReadId()));
+    TReadSeqSize mateLength = length(readSeqs[mateId]);
+
+    // Create lower and upper bound for the mate.
+    TMatch mateLeq = match;
+    setReadId(mateLeq, mateId);
+    flipStrand(mateLeq);
+    TMatch mateGeq = mateLeq;
+    mateLeq.errors = 0;
+    mateGeq.errors = MemberLimits<TMatch, Errors>::VALUE;
+
+    // --> ... mate
+    if (onForwardStrand(match))
     {
-        if (getMember(*leftIt, ContigId()) < getMember(*rightIt, ContigId()))
-            findNextContig(leftIt, left, getMember(*leftIt, ContigId()));
-        else if (getMember(*leftIt, ContigId()) > getMember(*rightIt, ContigId()))
-            findNextContig(rightIt, right, getMember(*rightIt, ContigId()));
-        else
-            return true;
+        addContigPosition(mateLeq, mean - 6 * stdDev - mateLength, contigSeqs);
+        addContigPosition(mateGeq, mean + 6 * stdDev - mateLength, contigSeqs);
+    }
+    // mate ... <--
+    else
+    {
+        subContigPosition(mateLeq, mean + 6 * stdDev - mateLength);
+        subContigPosition(mateGeq, mean - 6 * stdDev - mateLength);
     }
 
-    return false;
+//    std::cout << "================================================" << std::endl;
+//    write(std::cout, match);
+//    write(std::cout, mateLeq);
+//    write(std::cout, mateGeq);
+//    std::cout << "------------------------------------------------" << std::endl;
+
+    TIter first = std::lower_bound(begin(mates, Standard()), end(mates, Standard()), mateLeq, MatchSorter<TMatch, ContigBegin>());
+    TIter last = std::upper_bound(begin(mates, Standard()), end(mates, Standard()), mateGeq, MatchSorter<TMatch, ContigEnd>());
+
+    return infix(mates, position(first, mates), position(last, mates));
 }
 
 // ----------------------------------------------------------------------------
-// Function findNextContig()
+// Function forAllMatchesPairs()
 // ----------------------------------------------------------------------------
-// Find the first match after given contigId.
 
-template <typename TMatchesIterator, typename TMatches, typename TContigId>
-inline void findNextContig(TMatchesIterator & it, TMatches const & matches, TContigId contigId)
+template <typename TMatchesSet, typename TReadSeqs, typename TBinaryFunction, typename TThreading>
+inline void forAllMatchesPairs(TMatchesSet const & matchesSet, TReadSeqs const & readSeqs, TBinaryFunction && func, TThreading)
 {
-    while (!atEnd(it, matches) && getMember(*it, ContigId()) <= contigId) ++it;
-}
+    typedef typename Size<TReadSeqs>::Type             TReadId;
+    typedef typename Value<TMatchesSet const>::Type    TMatches;
 
-// ----------------------------------------------------------------------------
-// Function findReverseStrand()
-// ----------------------------------------------------------------------------
-// Find the first match on the reverse strand of the given contigId.
-
-template <typename TMatchesIterator, typename TMatches, typename TContigId>
-inline void findReverseStrand(TMatchesIterator & it, TMatches const & matches, TContigId contigId)
-{
-    while (!atEnd(it, matches) && (getMember(*it, ContigId()) <= contigId) && onForwardStrand(*it)) ++it;
-}
-
-// ----------------------------------------------------------------------------
-// Function bucketMatches()
-// ----------------------------------------------------------------------------
-
-template <typename TMatches, typename TDelegate>
-inline void bucketMatches(TMatches const & left, TMatches const & right, TDelegate & delegate)
-{
-    typedef typename Iterator<TMatches const, Standard>::Type   TIterator;
-    typedef typename Infix<TMatches const>::Type                TInfix;
-
-    TIterator leftIt = begin(left, Standard());
-    TIterator rightIt = begin(right, Standard());
-
-    // Find matches on the same contig.
-    while (findSameContig(leftIt, rightIt, left, right))
+    forEach(seqan::Range<TReadId>(0, getPairsCount(readSeqs)), [&](TReadId pairId)
     {
-        unsigned contigId = getMember(*leftIt, ContigId());
+        TReadId firstId = getFirstMateFwdSeqId(readSeqs, pairId);
+        TReadId secondId = getSecondMateFwdSeqId(readSeqs, pairId);
 
-        TIterator leftBegin;
-        TIterator rightBegin;
+        TMatches const & firstMatches = matchesSet[firstId];
+        TMatches const & secondMatches = matchesSet[secondId];
 
-        // Find matches on forward strand.
-        leftBegin = leftIt;
-        rightBegin = rightIt;
-        findReverseStrand(leftIt, left, contigId);
-        findReverseStrand(rightIt, right, contigId);
-        TInfix leftFwd = infix(left, position(leftBegin, left), position(leftIt, left));
-        TInfix rightFwd = infix(right, position(rightBegin, right), position(rightIt, right));
-
-        // Find matches on reverse strand.
-        leftBegin = leftIt;
-        rightBegin = rightIt;
-        findNextContig(leftIt, left, contigId);
-        findNextContig(rightIt, right, contigId);
-        TInfix leftRev = infix(left, position(leftBegin, left), position(leftIt, left));
-        TInfix rightRev = infix(right, position(rightBegin, right), position(rightIt, right));
-
-        delegate(leftFwd, rightRev, FwdRev());
-        delegate(leftFwd, rightFwd, FwdFwd());
-        delegate(leftRev, rightFwd, RevFwd());
-        delegate(leftRev, rightRev, RevRev());
-    }
+        if (!empty(firstMatches) && !empty(secondMatches))
+            func(firstMatches, secondMatches);
+    },
+    TThreading());
 }
 
 // ----------------------------------------------------------------------------
@@ -920,6 +945,31 @@ inline double getProbOptimalProperMatch(TErrorRate errorRate, TCount bestCount, 
                (inproperCount + inproperSubCount * subErrorRateExp) * (1 - pMate) +
                getErrorRateResidual(errorRate);
     return pMate / z;
+}
+
+// ----------------------------------------------------------------------------
+// Function getLibraryProb()
+// ----------------------------------------------------------------------------
+
+template <typename TSpec, typename TLibraryConfig>
+inline double getLibraryProb(Match<TSpec> const & one, Match<TSpec> const & two, TLibraryConfig const & config)
+{
+    if (!isProper(one, two, config)) return 0.0;
+
+    double libraryDev = getLibraryDeviation(one, two, config.mean);
+    double libraryScore = libraryDev / config.stdDev;
+
+//    return 1.0 - 2.0 * zScore(libraryScore);
+
+    static const double SQRT_2 = 1.41421356237;
+    return std::erfc((double)libraryScore / SQRT_2);
+}
+
+template <typename TStream, typename TSpec>
+inline void write(TStream & stream, Match<TSpec> const & me)
+{
+    stream << getMember(me, ReadId()) << " @ " << (unsigned)getMember(me, ContigId()) << '/' << onReverseStrand(me)
+           << " : " << Pair<unsigned>(getMember(me, ContigBegin()), getMember(me, ContigEnd())) << '\n';
 }
 
 #endif  // #ifndef APP_YARA_BITS_MATCHES_H_
