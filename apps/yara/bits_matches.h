@@ -798,7 +798,9 @@ inline void sortMatches(TMatches SEQAN_FORWARD_ARG matches)
 
 template <typename TMatches, typename TMatch, typename TReadSeqs, typename TContigSeqs, typename TNumber1, typename TNumber2>
 inline typename Infix<TMatches const>::Type
-findMates(TMatches const & mates, TMatch const & match, TReadSeqs const & readSeqs, TContigSeqs const & contigSeqs, TNumber1 mean, TNumber2 stdDev)
+findMates(TMatches const & mates, TMatch const & match,
+          TReadSeqs const & readSeqs, TContigSeqs const & contigSeqs,
+          TNumber1 mean, TNumber2 stdDev)
 {
     typedef typename Iterator<TMatches const>::Type TIter;
     typedef typename Size<TReadSeqs>::Type          TReadId;
