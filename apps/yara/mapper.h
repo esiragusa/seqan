@@ -895,17 +895,28 @@ inline void rankMatches(Mapper<TSpec, TConfig> & me, TReadSeqs const & readSeqs)
             setPosition(me.primaryMatches, readId, length(me.matchesByCoord) - 1);
         }
         // Choose match at random.
-//        else
-//        {
+        else
+        {
 ////            std::cout << position(me.primaryMatches, readId) << " --> ";
 //            TMatchesRnd rnd(0, length(matches) - 1);
 //            setPosition(me.primaryMatches, readId, position(me.primaryMatches, readId) + rnd(generator));
 ////            std::cout << position(me.primaryMatches, readId) << std::endl;
-//        }
+        }
     },
     Standard(), typename TTraits::TThreading());
 
-//    if (IsSameType<typename TConfig::TSequencing, PairedEnd>::VALUE)
+    // Update mapped reads.
+    unsigned long mappedReads = 0;
+    if (me.options.verbose > 0)
+    {
+        transform(me.ctx.mapped, me.primaryMatches, isValid<typename TTraits::TMatchSpec>, typename TTraits::TThreading());
+        mappedReads = count(me.ctx.mapped, true, typename TTraits::TThreading());
+        me.stats.mappedReads += mappedReads;
+    }
+    if (me.options.verbose > 1)
+        std::cerr << "Mapped reads:\t\t\t" << mappedReads << std::endl;
+
+    if (IsSameType<typename TConfig::TSequencing, SingleEnd>::VALUE) return;
 
     // Collect library lengths from unique pairs.
     TLibraryLengths libraryLengths;
@@ -938,6 +949,16 @@ inline void rankMatches(Mapper<TSpec, TConfig> & me, TReadSeqs const & readSeqs)
     transform(libraryDiffs, libraryLengths, std::bind2nd(std::minus<float>(), libraryMean));
     float librarySqSum = innerProduct(libraryDiffs, 0.0f, typename TTraits::TThreading());
     float libraryDev = std::sqrt(librarySqSum / static_cast<float>(length(libraryLengths)));
+
+    if (me.options.verbose > 1)
+    {
+        std::cerr << "Library median:\t\t\t" << libraryMedian << std::endl;
+        std::cerr << "Library mean:\t\t\t" << libraryMean << std::endl;
+        std::cerr << "Library stddev:\t\t\t" << libraryDev << std::endl;
+    }
+
+//    if (!me.options.libraryLength) me.options.libraryLength = std::round(libraryMean);
+//    if (!me.options.libraryError) me.options.libraryError = std::round(libraryDev);
 
     // ONLY ASSERT!
     forEach(me.matchesSetByCoord, [](TMatchesSetValue const & matches)
@@ -983,9 +1004,6 @@ inline void rankMatches(Mapper<TSpec, TConfig> & me, TReadSeqs const & readSeqs)
     typename TTraits::TThreading());
 
 
-//    if (!me.options.libraryLength) me.options.libraryLength = std::round(libraryMean);
-//    if (!me.options.libraryError) me.options.libraryError = std::round(libraryDev);
-
     // Try to pair mates.
 //    if (IsSameType<typename TConfig::TSequencing, PairedEnd>::VALUE)
 //    {
@@ -1017,16 +1035,7 @@ inline void rankMatches(Mapper<TSpec, TConfig> & me, TReadSeqs const & readSeqs)
 //        me.stats.selectPairs += getValue(me.timer);
 //    }
 
-    unsigned long mappedReads = 0;
-    if (me.options.verbose > 0)
-    {
-        transform(me.ctx.mapped, me.primaryMatches, isValid<typename TTraits::TMatchSpec>, typename TTraits::TThreading());
-        mappedReads = count(me.ctx.mapped, true, typename TTraits::TThreading());
-        me.stats.mappedReads += mappedReads;
-    }
-    if (me.options.verbose > 1)
-        std::cerr << "Mapped reads:\t\t\t" << mappedReads << std::endl;
-
+    // Update paired reads.
     unsigned long pairedReads = 0;
     if (me.options.verbose > 0)
     {
@@ -1037,12 +1046,6 @@ inline void rankMatches(Mapper<TSpec, TConfig> & me, TReadSeqs const & readSeqs)
     {
         std::cerr << "Pairing time:\t\t\t" << me.timer << std::endl;
         std::cerr << "Paired reads:\t\t\t" << pairedReads << std::endl;
-    }
-    if (me.options.verbose > 1)
-    {
-        std::cerr << "Library median:\t\t\t" << libraryMedian << std::endl;
-        std::cerr << "Library mean:\t\t\t" << libraryMean << std::endl;
-        std::cerr << "Library stddev:\t\t\t" << libraryDev << std::endl;
     }
 }
 
