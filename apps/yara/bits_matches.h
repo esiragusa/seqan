@@ -831,12 +831,6 @@ findMates(TMatches const & mates, TMatch const & match,
         subContigPosition(mateGeq, mean - 6 * stdDev - mateLength);
     }
 
-//    std::cout << "================================================" << std::endl;
-//    write(std::cout, match);
-//    write(std::cout, mateLeq);
-//    write(std::cout, mateGeq);
-//    std::cout << "------------------------------------------------" << std::endl;
-
     TIter first = std::lower_bound(begin(mates, Standard()), end(mates, Standard()), mateLeq, MatchSorter<TMatch, ContigBegin>());
     TIter last = std::upper_bound(begin(mates, Standard()), end(mates, Standard()), mateGeq, MatchSorter<TMatch, ContigEnd>());
 
@@ -903,53 +897,6 @@ inline double getProbOptimalMatch(TErrorRate errorRate, TCount bestCount, TCount
 }
 
 // ----------------------------------------------------------------------------
-// Function getProbOptimalStratum()
-// ----------------------------------------------------------------------------
-// Single-end stratum.
-
-template <typename TErrorRate, typename TCount>
-inline double getProbOptimalStratum(TErrorRate errorRate, TCount bestCount, TCount subCount)
-{
-    double subErrorRateExp = 0.1 * (errorRate + 0.01);
-    double z = bestCount + subCount * subErrorRateExp + getErrorRateResidual(errorRate);
-    return bestCount / z;
-}
-
-// ----------------------------------------------------------------------------
-// Function getProbOptimalInproperMatch()
-// ----------------------------------------------------------------------------
-// Non-properly paired match.
-
-template <typename TErrorRate, typename TCount>
-inline double getProbOptimalInproperMatch(TErrorRate errorRate, TCount bestCount, TCount subCount,
-                                          TErrorRate mateErrorRate, TCount mateBestCount, TCount mateSubCount)
-{
-    return getProbOptimalMatch(errorRate, bestCount, subCount) *
-           (1 - getProbOptimalStratum(mateErrorRate, mateBestCount, mateSubCount));
-}
-
-// ----------------------------------------------------------------------------
-// Function getProbOptimalProperMatch()
-// ----------------------------------------------------------------------------
-// Properly paired match.
-
-template <typename TErrorRate, typename TCount, typename TProb>
-inline double getProbOptimalProperMatch(TErrorRate errorRate, TCount bestCount, TCount subCount,
-                                        TErrorRate mateErrorRate, TCount mateBestCount, TCount mateSubCount,
-                                        TProb properCount, TProb properSubCount)
-{
-    TCount inproperCount = bestCount - properCount;
-    TCount inproperSubCount = subCount - properSubCount;
-
-    double subErrorRateExp = 0.1 * (errorRate + 0.01);
-    double pMate = getProbOptimalStratum(mateErrorRate, mateBestCount, mateSubCount);
-    double z = (properCount + properSubCount * subErrorRateExp) * pMate +
-               (inproperCount + inproperSubCount * subErrorRateExp) * (1 - pMate) +
-               getErrorRateResidual(errorRate);
-    return pMate / z;
-}
-
-// ----------------------------------------------------------------------------
 // Function getLibraryProb()
 // ----------------------------------------------------------------------------
 
@@ -966,6 +913,11 @@ inline double getLibraryProb(Match<TSpec> const & one, Match<TSpec> const & two,
     static const double SQRT_2 = 1.41421356237;
     return std::erfc((double)libraryScore / SQRT_2);
 }
+
+// ----------------------------------------------------------------------------
+// Function write()
+// ----------------------------------------------------------------------------
+// Debug.
 
 template <typename TStream, typename TSpec>
 inline void write(TStream & stream, Match<TSpec> const & me)
