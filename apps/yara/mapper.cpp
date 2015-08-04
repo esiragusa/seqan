@@ -163,9 +163,7 @@ void setupArgumentParser(ArgumentParser & parser, Options const & options)
     setDefaultValue(parser, "error-rate", 100.0 * options.errorRate);
 
     addOption(parser, ArgParseOption("s", "strata-rate", "Report suboptimal alignments within this percentual number \
-                                                          of errors from the optimal alignment. Note: Either specify \
-                                                          --strata-rate much smaller than --error-rate, or better use \
-                                                          the option --all to consider all alignments within error-rate.",
+                                                          of errors from the optimal alignment.",
                                                           ArgParseOption::INTEGER));
     setMinValue(parser, "strata-rate", "0");
     setMaxValue(parser, "strata-rate", "10");
@@ -173,6 +171,7 @@ void setupArgumentParser(ArgumentParser & parser, Options const & options)
 
     addOption(parser, ArgParseOption("a", "all", "Report all alignments within --error-rate. Default: report alignments \
                                                   within --strata-rate."));
+    hideOption(getOption(parser, "all"));
 
     addOption(parser, ArgParseOption("q", "quick", "Be quicker by loosely mapping a few very repetitive reads."));
     hideOption(getOption(parser, "quick"));
@@ -212,6 +211,7 @@ void setupArgumentParser(ArgumentParser & parser, Options const & options)
     setMinValue(parser, "reads-batch", "1000");
     setMaxValue(parser, "reads-batch", "1000000");
     setDefaultValue(parser, "reads-batch", options.readsCount);
+    hideOption(getOption(parser, "reads-batch"));
 }
 
 // ----------------------------------------------------------------------------
