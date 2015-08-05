@@ -968,72 +968,29 @@ inline void rankMatches(Mapper<TSpec, TConfig> & me, TReadSeqs const & readSeqs)
                                     MatchSorter<TMatch, ContigBegin>()));
     });
     
-    // Pair mates.
+    // Enumerate feasible pairs.
     forAllMatchesPairs(me.matchesSetByCoord, readSeqs, [&](TMatchesSetValue const & firstMatches, TMatchesSetValue const & secondMatches)
     {
+        // First mate match with all second mate matches.
         forEach(firstMatches, [&](TMatch const & firstMatch)
         {
             TMatchesSetValue const & secondMates = findMates(secondMatches, firstMatch, readSeqs, me.contigs.seqs, libraryMean, libraryDev);
             if (!empty(secondMates)) setPaired(me.ctx, getMember(firstMatch, ReadId()));
-            std::cout << length(secondMates) << std::endl;
 
 //            forEach(secondMates, [&](TMatch const & secondMatch)
 //            {
 //                SEQAN_ASSERT_EQ(getMember(firstMatch, ContigId()), getMember(secondMatch, ContigId()));
-//                write(std::cout, secondMatch);
 //            });
-//            std::cout << "------------------------------------------------" << std::endl;
-//            forEach(secondMatches, [&](TMatch const & secondMatch)
-//            {
-//                write(std::cout, secondMatch);
-//            });
-//            std::cout << "================================================" << std::endl;
         });
 
-        std::cout << "------------------------------------------------" << std::endl;
-
+        // Second mate match with all first mate matches.
         forEach(secondMatches, [&](TMatch const & secondMatch)
         {
             TMatchesSetValue const & firstMates = findMates(firstMatches, secondMatch, readSeqs, me.contigs.seqs, libraryMean, libraryDev);
             if (!empty(firstMates)) setPaired(me.ctx, getMember(secondMatch, ReadId()));
-            std::cout << length(firstMates) << std::endl;
         });
-
-        std::cout << "================================================" << std::endl;
     },
     typename TTraits::TThreading());
-
-
-    // Try to pair mates.
-//    if (IsSameType<typename TConfig::TSequencing, PairedEnd>::VALUE)
-//    {
-//        start(me.timer);
-//
-//        // Concordant pairs of first co-optimal match with second sub-optimal match.
-//        TPairsSelector selectorOptSubConcordant(me.primaryMatches, me.ctx, readSeqs, me.optimalMatchesSet, me.suboptimalMatchesSet, me.options);
-//        // Concordant pairs of first sub-optimal match with second co-optimal match.
-//        TPairsSelector selectorSubOptConcordant(me.primaryMatches, me.ctx, readSeqs, me.suboptimalMatchesSet, me.optimalMatchesSet, me.options);
-//
-//        // Mark paired mates as properly paired.
-//        iterate(me.primaryMatches, [&](typename Iterator<TMatchesView, Standard>::Type & matchesIt)
-//        {
-//            if (isValid(*matchesIt)) setPaired(me.ctx, getMember(*matchesIt, ReadId()));
-//        },
-//        Standard(), typename TTraits::TThreading());
-//
-//        // Concordant co-optimal matches on the same chromosome outside of the expected insert size.
-//        Options pairing = me.options;
-//        pairing.libraryError = MaxValue<unsigned>::VALUE;
-//        TPairsSelector selectorOptOptConcordant(me.primaryMatches, me.ctx, readSeqs, me.optimalMatchesSet, me.optimalMatchesSet, pairing);
-//
-//        // Any pair of co-optimal matches on the same chromosome.
-//        pairing.libraryOrientation = ANY;
-//        pairing.libraryError = MaxValue<unsigned>::VALUE;
-//        TPairsSelector selectorOptOptAny(me.primaryMatches, me.ctx, readSeqs, me.optimalMatchesSet, me.optimalMatchesSet, pairing);
-//
-//        stop(me.timer);
-//        me.stats.selectPairs += getValue(me.timer);
-//    }
 
     // Update paired reads.
     unsigned long pairedReads = 0;
