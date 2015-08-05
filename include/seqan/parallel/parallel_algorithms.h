@@ -486,12 +486,12 @@ inline TFunctor forEach(TContainer const & c, TFunctor f, Parallel)
 // Function transform(Parallel)
 // ----------------------------------------------------------------------------
 
-template <typename TTarget, typename TSource, typename TUnaryOperator>
-inline void transform(TTarget & target, TSource & source, TUnaryOperator o, Parallel)
-{
-    SEQAN_ASSERT_GEQ(length(target), length(source));
-    __gnu_parallel::transform(begin(source, Standard()), end(source, Standard()), begin(target, Standard()), o);
-}
+//template <typename TTarget, typename TSource, typename TUnaryOperator>
+//inline void transform(TTarget & target, TSource & source, TUnaryOperator o, Parallel)
+//{
+//    SEQAN_ASSERT_GEQ(length(target), length(source));
+//    __gnu_parallel::transform(begin(source, Standard()), end(source, Standard()), begin(target, Standard()), o);
+//}
 
 // ----------------------------------------------------------------------------
 // Function generate(Parallel)
