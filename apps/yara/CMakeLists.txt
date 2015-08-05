@@ -123,7 +123,6 @@ add_executable(yara_mapper    mapper.cpp
                               mapper_filter.h
                               mapper_extender.h
                               mapper_verifier.h
-                              mapper_selector.h
                               mapper_aligner.h
                               mapper_writer.h
                               basic_alphabet.h

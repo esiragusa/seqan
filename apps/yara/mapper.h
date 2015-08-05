@@ -819,12 +819,10 @@ inline void rankMatches(Mapper<TSpec, TConfig> & me, TReadSeqs const & readSeqs)
     typedef MapperTraits<TSpec, TConfig>                    TTraits;
     typedef typename TTraits::TMatch                        TMatch;
     typedef typename TTraits::TMatchesSet                   TMatchesSet;
-    typedef typename TTraits::TMatchesView                  TMatchesView;
     typedef typename TTraits::TMatchesViewSet               TMatchesViewSet;
     typedef typename Value<TMatchesSet const>::Type         TMatchesSetValue;
     typedef typename Value<TMatchesViewSet const>::Type     TMatchesViewSetValue;
     typedef typename Iterator<TMatchesViewSet const, Standard>::Type TMatchesViewSetIt;
-    typedef PairsSelector<TSpec, TTraits>                   TPairsSelector;
     typedef typename Size<TReadSeqs>::Type                  TReadId;
     typedef typename Size<TMatchesSetValue>::Type           TMatchesSize;
     typedef std::uniform_int_distribution<TMatchesSize>     TMatchesRnd;
