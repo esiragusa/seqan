@@ -283,7 +283,7 @@ inline void _writeMappedReadImpl(MatchesWriter<TSpec, Traits> & me, TReadId read
     _fillReadInfo(me, bestCount, subCount);
 
     double errorRate = getErrorRate(primary, me.reads.seqs);
-    double prob = getProbOptimalMatch(errorRate, bestCount, subCount);
+    double prob = getMatchProb(errorRate, errorRate, bestCount, subCount);
     me.record.mapQ = getMapq(prob);
 
     // Find the primary match in the list of matches.
@@ -326,7 +326,7 @@ inline void _writeMappedReadImpl(MatchesWriter<TSpec, Traits> & me, TReadId read
     _fillReadInfo(me, bestCount, subCount);
 
     double errorRate = getErrorRate(primary, me.reads.seqs);
-    double prob = getProbOptimalMatch(errorRate, bestCount, subCount);
+    double prob = getMatchProb(errorRate, errorRate, bestCount, subCount);
     me.record.mapQ = getMapq(prob);
 
     // Find the primary match in the list of matches.

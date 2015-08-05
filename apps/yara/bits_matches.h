@@ -862,38 +862,47 @@ inline void forAllMatchesPairs(TMatchesSet const & matchesSet, TReadSeqs const &
 }
 
 // ----------------------------------------------------------------------------
-// Function getErrorRateResidual()
+// Function getMatchWeight()
 // ----------------------------------------------------------------------------
+// Weight of one match.
 
 template <typename TErrorRate>
-double getErrorRateResidual(TErrorRate errorRate)
+inline double getMatchWeight(TErrorRate errorRate, TErrorRate optimalRate)
 {
-    static const double RESIDUAL[6] =
-    {
-        0.0003,
-        0.0004,
-        0.0013,
-        0.0084,
-        0.0265,
-        0.0300
-    };
-
-    return RESIDUAL[_min(5u, (unsigned)(100 * errorRate))];
-
-//    return errorRate * 0.01;
+    return (1.0 - errorRate) / std::pow(10.0, 300.0 * (errorRate - optimalRate));
 }
 
 // ----------------------------------------------------------------------------
-// Function getProbOptimalMatch()
+// Function getStratumWeight()
+// ----------------------------------------------------------------------------
+// Weight of one stratum.
+
+template <typename TErrorRate, typename TCount>
+inline double getStratumWeight(TErrorRate errorRate, TErrorRate optimalRate, TCount stratumCount)
+{
+    return stratumCount * getMatchWeight(errorRate, optimalRate);
+}
+
+// ----------------------------------------------------------------------------
+// Function getFirstTwoStrataWeight()
+// ----------------------------------------------------------------------------
+// Weight of first two strata.
+
+template <typename TErrorRate, typename TCount>
+inline double getFirstTwoStrataWeight(TErrorRate optimalRate, TCount optimalCount, TCount subCount)
+{
+    return optimalCount * getMatchWeight(optimalRate, optimalRate) + subCount * getMatchWeight(optimalRate + 0.01, optimalRate);
+}
+
+// ----------------------------------------------------------------------------
+// Function getMatchProb()
 // ----------------------------------------------------------------------------
 // Single-end match.
 
 template <typename TErrorRate, typename TCount>
-inline double getProbOptimalMatch(TErrorRate errorRate, TCount bestCount, TCount subCount)
+inline double getMatchProb(TErrorRate errorRate, TErrorRate optimalRate, TCount optimalCount, TCount subCount)
 {
-    double subErrorRateExp = 0.1 * (errorRate + 0.01);
-    double z = bestCount + subCount * subErrorRateExp + getErrorRateResidual(errorRate);
-    return 1.0 / z;
+    return getMatchWeight(errorRate, optimalRate) / getFirstTwoStrataWeight(optimalRate, optimalCount, subCount);
 }
 
 // ----------------------------------------------------------------------------
@@ -908,10 +917,10 @@ inline double getLibraryProb(Match<TSpec> const & one, Match<TSpec> const & two,
     double libraryDev = getLibraryDeviation(one, two, config.mean);
     double libraryScore = libraryDev / config.stdDev;
 
-//    return 1.0 - 2.0 * zScore(libraryScore);
-
     static const double SQRT_2 = 1.41421356237;
     return std::erfc((double)libraryScore / SQRT_2);
+
+//    return 1.0 - 2.0 * zScore(libraryScore);
 }
 
 // ----------------------------------------------------------------------------
