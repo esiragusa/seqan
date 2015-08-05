@@ -277,6 +277,7 @@ struct Mapper
     typename Traits::TMatchesSet        matchesSetByCoord;
 
     typename Traits::TMatchesPositions  matchesPositions;
+    typename Traits::TMatchesPositions  primaryMatchesPositions;
     typename Traits::TMatchesView       matchesByErrors;
     typename Traits::TMatchesViewSet    matchesSetByErrors;
     typename Traits::TMatchesViewSet    optimalMatchesSet;
@@ -748,15 +749,6 @@ inline void aggregateMatches(Mapper<TSpec, TConfig> & me, TReadSeqs & readSeqs)
     stop(me.timer);
     me.stats.compactMatches += getValue(me.timer);
 
-    typedef typename TTraits::TMatchesSet                   TMatchesSet;
-    typedef typename Value<TMatchesSet const>::Type         TMatchesSetValue;
-    forEach(me.matchesSetByCoord, [](TMatchesSetValue const & matches)
-    {
-        SEQAN_ASSERT(std::is_sorted(begin(matches, Standard()),
-                                    end(matches, Standard()),
-                                    MatchSorter<TMatch, ContigBegin>()));
-    });
-
     if (me.options.verbose > 1)
     {
         std::cerr << "Compaction time:\t\t" << me.timer << std::endl;
@@ -878,7 +870,8 @@ inline void rankMatches(Mapper<TSpec, TConfig> & me, TReadSeqs const & readSeqs)
 
     // Initialize primary matches.
     setHost(me.primaryMatches, me.matchesByCoord);
-    setCargo(me.primaryMatches, stringSetPositions(me.matchesSetByCoord));
+    assign(me.primaryMatchesPositions, stringSetPositions(me.matchesSetByCoord), Exact());
+    setCargo(me.primaryMatches, me.primaryMatchesPositions);
 
     // Choose primary matches among best matches.
     iterate(me.optimalMatchesSet, [&](TMatchesViewSetIt const & matchesIt)
@@ -897,10 +890,8 @@ inline void rankMatches(Mapper<TSpec, TConfig> & me, TReadSeqs const & readSeqs)
         // Choose match at random.
         else
         {
-////            std::cout << position(me.primaryMatches, readId) << " --> ";
-//            TMatchesRnd rnd(0, length(matches) - 1);
-//            setPosition(me.primaryMatches, readId, position(me.primaryMatches, readId) + rnd(generator));
-////            std::cout << position(me.primaryMatches, readId) << std::endl;
+            TMatchesRnd rnd(0, length(matches) - 1);
+            setPosition(me.primaryMatches, readId, position(me.primaryMatches, readId) + rnd(generator));
         }
     },
     Standard(), typename TTraits::TThreading());
@@ -960,14 +951,15 @@ inline void rankMatches(Mapper<TSpec, TConfig> & me, TReadSeqs const & readSeqs)
 //    if (!me.options.libraryLength) me.options.libraryLength = std::round(libraryMean);
 //    if (!me.options.libraryError) me.options.libraryError = std::round(libraryDev);
 
-    // ONLY ASSERT!
-    forEach(me.matchesSetByCoord, [](TMatchesSetValue const & matches)
-    {
-        SEQAN_ASSERT(std::is_sorted(begin(matches, Standard()),
-                                    end(matches, Standard()),
-                                    MatchSorter<TMatch, ContigBegin>()));
-    });
-    
+    // DEBUG ONLY!
+//    forEach(me.matchesSetByCoord, [](TMatchesSetValue const & matches)
+//    {
+//        ignoreUnusedVariableWarning(matches);
+//        SEQAN_ASSERT(std::is_sorted(begin(matches, Standard()),
+//                                    end(matches, Standard()),
+//                                    MatchSorter<TMatch, ContigBegin>()));
+//    });
+
     // Enumerate feasible pairs.
     forAllMatchesPairs(me.matchesSetByCoord, readSeqs, [&](TMatchesSetValue const & firstMatches, TMatchesSetValue const & secondMatches)
     {
