@@ -932,7 +932,8 @@ template <typename TStream, typename TSpec>
 inline void write(TStream & stream, Match<TSpec> const & me)
 {
     stream << getMember(me, ReadId()) << " @ " << (unsigned)getMember(me, ContigId()) << '/' << onReverseStrand(me)
-           << " : " << Pair<unsigned>(getMember(me, ContigBegin()), getMember(me, ContigEnd())) << '\n';
+           << " : " << Pair<unsigned>(getMember(me, ContigBegin()), getMember(me, ContigEnd()))
+           << " + " << getMember(me, Errors()) << '\n';
 }
 
 #endif  // #ifndef APP_YARA_BITS_MATCHES_H_
