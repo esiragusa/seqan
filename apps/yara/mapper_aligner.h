@@ -51,7 +51,7 @@ struct MatchesAligner
     typedef typename Traits::TContigSeqs       TContigSeqs;
     typedef typename Traits::TReadSeqs         TReadSeqs;
     typedef typename Traits::TMatches          TMatches;
-    typedef typename Traits::TMatchesView      TMatchesView;
+    typedef typename Traits::TMatchesViewView  TMatchesView;
     typedef typename Traits::TCigar            TCigar;
     typedef typename Traits::TCigarSet         TCigarSet;
     typedef typename Traits::TCigarLimits      TCigarLimits;

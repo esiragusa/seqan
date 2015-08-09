@@ -199,6 +199,7 @@ struct MapperTraits
     typedef String<TMatchesPos>                                     TMatchesPositions;
     typedef ModifiedString<TMatches, ModPos<TMatchesPositions> >    TMatchesView;
     typedef StringSet<TMatchesView, Segment<TMatchesView> >         TMatchesViewSet;
+    typedef ModifiedString<TMatchesView, ModPos<TMatchesPositions> > TMatchesViewView;
 
     typedef String<CigarElement<> >                                 TCigar;
     typedef StringSet<TCigar, Segment<TCigar> >                     TCigarSet;
@@ -282,7 +283,7 @@ struct Mapper
     typename Traits::TMatchesViewSet    matchesSetByErrors;
     typename Traits::TMatchesViewSet    optimalMatchesSet;
     typename Traits::TMatchesViewSet    suboptimalMatchesSet;
-    typename Traits::TMatchesView       primaryMatches;
+    typename Traits::TMatchesViewView   primaryMatches;
 
     typename Traits::TCigar             cigars;
     typename Traits::TCigarSet          cigarSet;
@@ -862,13 +863,16 @@ inline void rankMatches(Mapper<TSpec, TConfig> & me, TReadSeqs const & readSeqs)
     },
     typename TTraits::TThreading());
 
-    // Append an invalid match.
+    // Append an invalid match to matches by coord.
     resize(me.matchesByCoord, length(me.matchesByCoord) + 1, Exact());
     setInvalid(back(me.matchesByCoord));
+    // Update matches by errors.
+    resize(me.matchesPositions, length(me.matchesPositions) + 1, Exact());
+    setPosition(me.matchesByErrors, length(me.matchesByErrors) - 1, length(me.matchesByCoord) - 1);
 
     // Initialize primary matches.
-    setHost(me.primaryMatches, me.matchesByCoord);
-    assign(me.primaryMatchesPositions, stringSetPositions(me.matchesSetByCoord), Exact());
+    setHost(me.primaryMatches, me.matchesByErrors);
+    assign(me.primaryMatchesPositions, stringSetPositions(me.matchesSetByErrors), Exact());
     setCargo(me.primaryMatches, me.primaryMatchesPositions);
 
     // Choose primary matches among best matches.
@@ -883,7 +887,7 @@ inline void rankMatches(Mapper<TSpec, TConfig> & me, TReadSeqs const & readSeqs)
         // Set unmapped reads as invalid.
         if (empty(matches))
         {
-            setPosition(me.primaryMatches, readId, length(me.matchesByCoord) - 1);
+            setPosition(me.primaryMatches, readId, length(me.matchesByErrors) - 1);
         }
         // Choose match at random.
         else
@@ -948,15 +952,6 @@ inline void rankMatches(Mapper<TSpec, TConfig> & me, TReadSeqs const & readSeqs)
 
 //    if (!me.options.libraryLength) me.options.libraryLength = std::round(libraryMean);
 //    if (!me.options.libraryError) me.options.libraryError = std::round(libraryDev);
-
-    // DEBUG ONLY!
-//    forEach(me.matchesSetByCoord, [](TMatchesSetValue const & matches)
-//    {
-//        ignoreUnusedVariableWarning(matches);
-//        SEQAN_ASSERT(std::is_sorted(begin(matches, Standard()),
-//                                    end(matches, Standard()),
-//                                    MatchSorter<TMatch, ContigBegin>()));
-//    });
 
     // Enumerate feasible pairs.
     forAllMatchesPairs(me.matchesSetByCoord, readSeqs, [&](TMatchesSetValue const & firstMatches, TMatchesSetValue const & secondMatches)

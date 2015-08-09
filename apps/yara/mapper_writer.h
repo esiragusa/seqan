@@ -51,7 +51,7 @@ struct MatchesWriter
     typedef typename Traits::TReads            TReads;
     typedef typename Traits::TMatches          TMatches;
     typedef typename Traits::TMatchesSet       TMatchesSet;
-    typedef typename Traits::TMatchesView      TMatchesView;
+    typedef typename Traits::TMatchesViewView  TMatchesView;
     typedef typename Traits::TMatchesViewSet   TMatchesViewSet;
     typedef typename Traits::TCigarSet         TCigarSet;
     typedef typename Traits::TOutputFile       TOutputFile;
@@ -269,6 +269,9 @@ inline void _writeMappedReadImpl(MatchesWriter<TSpec, Traits> & me, TReadId read
     typedef typename Traits::TMatches           TMatches;
     typedef typename Size<TMatches>::Type       TSize;
     typedef typename Iterator<TMatches const, Standard>::Type   TIter;
+
+    SEQAN_ASSERT_EQ(readId, getMember(primary, ReadId()));
+    SEQAN_ASSERT_EQ((unsigned)getMinErrors(me.ctx, readId), getMember(primary, Errors()));
 
     clear(me.record);
     _fillReadName(me, getReadSeqId(primary, me.reads.seqs));
