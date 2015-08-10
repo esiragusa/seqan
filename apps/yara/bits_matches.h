@@ -932,10 +932,10 @@ inline double getLibraryProb(Match<TSpec> const & one, Match<TSpec> const & two,
     if (!isProper(one, two, mean, stdDev)) return 0.001;
 
     double libraryDev = getLibraryDeviation(one, two, mean);
-    double libraryScore = libraryDev / stdDev;
+    double libraryScore = (double)libraryDev / stdDev;
 
     static const double SQRT_2 = 1.41421356237;
-    return std::erfc((double)libraryScore / SQRT_2);
+    return std::max(0.001, std::erfc((double)libraryScore / SQRT_2));
 
 //    return 1.0 - 2.0 * zScore(libraryScore);
 }
