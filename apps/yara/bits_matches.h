@@ -580,6 +580,20 @@ inline bool isDuplicate(Match<TSpec> const & a, Match<TSpec> const & b, ContigEn
 }
 
 // ----------------------------------------------------------------------------
+// Function isEqual()
+// ----------------------------------------------------------------------------
+
+template <typename TSpec>
+inline bool isEqual(Match<TSpec> const & a, Match<TSpec> const & b)
+{
+    return getMember(a, ReadId()) == getMember(b, ReadId()) &&
+           contigEqual(a, b) && strandEqual(a, b) &&
+           getMember(a, ContigBegin()) == getMember(b, ContigBegin()) &&
+           getMember(a, ContigEnd()) == getMember(b, ContigEnd()) &&
+           getMember(a, Errors()) == getMember(b, Errors());
+}
+
+// ----------------------------------------------------------------------------
 // Function getLibraryLength()
 // ----------------------------------------------------------------------------
 
