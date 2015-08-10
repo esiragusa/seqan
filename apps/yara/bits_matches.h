@@ -945,7 +945,7 @@ inline double getLibraryProb(Match<TSpec> const & one, Match<TSpec> const & two,
 // ----------------------------------------------------------------------------
 
 template <typename TMatches, typename TErrorRate, typename TReadSeqs, typename TContigSeqs,
-          typename TNumber1, typename TNumber2>
+          typename TMean, typename TStdDev>
 inline Pair<typename Iterator<TMatches, Standard>::Type, double>
 findPrimaryMatch(TMatches const & firstMatches,
                  TMatches const & secondMatches,
@@ -953,8 +953,8 @@ findPrimaryMatch(TMatches const & firstMatches,
                  TErrorRate secondOptimalRate,
                  TReadSeqs const & readSeqs,
                  TContigSeqs const & contigSeqs,
-                 TNumber1 mean,
-                 TNumber2 stdDev)
+                 TMean mean,
+                 TStdDev stdDev)
 {
     typedef typename Value<TMatches const>::Type                TMatch;
     typedef typename Iterator<TMatches const, Standard>::Type   TMatchesIt;
@@ -974,7 +974,8 @@ findPrimaryMatch(TMatches const & firstMatches,
         forEach(mates, [&](TMatch const & secondMatch)
         {
             double secondErrorRate = getErrorRate(secondMatch, readSeqs);
-            firstMatchWeight += getMatchWeight(secondErrorRate, secondOptimalRate);
+            firstMatchWeight += getMatchWeight(secondErrorRate, secondOptimalRate) *
+                                getLibraryProb(firstMatch, secondMatch, mean, stdDev);
         });
 
         double firstErrorRate = getErrorRate(firstMatch, readSeqs);
