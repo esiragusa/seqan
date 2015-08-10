@@ -53,6 +53,7 @@ struct MatchesWriter
     typedef typename Traits::TMatchesSet       TMatchesSet;
     typedef typename Traits::TMatchesViewView  TMatchesView;
     typedef typename Traits::TMatchesViewSet   TMatchesViewSet;
+    typedef typename Traits::TMatchesProbs     TMatchesProbs;
     typedef typename Traits::TCigarSet         TCigarSet;
     typedef typename Traits::TOutputFile       TOutputFile;
     typedef typename Traits::TReadsContext     TReadsContext;
@@ -68,6 +69,7 @@ struct MatchesWriter
     // Shared-memory read-only data.
     TMatchesViewSet const & matchesSet;
     TMatchesView const &    primaryMatches;
+    TMatchesProbs const &   primaryMatchesProbs;
     TCigarSet const &       cigarSet;
     TReadsContext const &   ctx;
     TReads const &          reads;
@@ -76,6 +78,7 @@ struct MatchesWriter
     MatchesWriter(TOutputFile & outputFile,
                   TMatchesViewSet const & matchesSet,
                   TMatchesView const & primaryMatches,
+                  TMatchesProbs const & primaryMatchesProbs,
                   TCigarSet const & cigarSet,
                   TReadsContext const & ctx,
                   TReads const & reads,
@@ -83,6 +86,7 @@ struct MatchesWriter
         outputFile(outputFile),
         matchesSet(matchesSet),
         primaryMatches(primaryMatches),
+        primaryMatchesProbs(primaryMatchesProbs),
         cigarSet(cigarSet),
         ctx(ctx),
         reads(reads),
@@ -316,21 +320,24 @@ inline void _writeMappedReadImpl(MatchesWriter<TSpec, Traits> & me, TReadId read
     _fillReadAlignment(me, primary);
     _fillMateInfo(me, readId);
 
-    if (isPaired(me.ctx, readId))
-    {
-        TReadId mateId = getMateId(me.reads.seqs, readId);
-        TMatch const & mate = me.primaryMatches[mateId];
-        _fillMatePosition(me, primary, mate);
-    }
-
     TMatches const & matches = me.matchesSet[readId];
     TSize bestCount = countMatchesInBestStratum(matches);
     TSize subCount = length(matches) - bestCount;
     _fillReadInfo(me, bestCount, subCount);
 
-    double errorRate = getErrorRate(primary, me.reads.seqs);
-    double prob = getMatchProb(errorRate, errorRate, bestCount, subCount);
-    me.record.mapQ = getMapq(prob);
+    if (isPaired(me.ctx, readId))
+    {
+        TReadId mateId = getMateId(me.reads.seqs, readId);
+        TMatch const & mate = me.primaryMatches[mateId];
+        _fillMatePosition(me, primary, mate);
+        me.record.mapQ = getMapq(me.primaryMatchesProbs[readId]);
+    }
+    else
+    {
+        double errorRate = getErrorRate(primary, me.reads.seqs);
+        double prob = getMatchProb(errorRate, errorRate, bestCount, subCount);
+        me.record.mapQ = getMapq(prob);
+    }
 
     // Find the primary match in the list of matches.
     TIter it = findMatch(matches, primary);
