@@ -1016,7 +1016,7 @@ inline void rankMatches(Mapper<TSpec, TConfig> & me, TReadSeqs const & readSeqs)
         me.primaryMatchesProbs[secondId] = getValueI2(secondPrimary);
 
         // Set reads as properly paired.
-//        if (isProper(firstBest, secondBest, config))
+//        if (isProper(me.primaryMatches[firstId], me.primaryMatches[secondId], libraryMean, libraryDev))
 //        {
             setPaired(me.ctx, firstId);
             setPaired(me.ctx, secondId);
