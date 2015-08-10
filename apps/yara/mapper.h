@@ -954,8 +954,8 @@ inline void rankMatches(Mapper<TSpec, TConfig> & me, TReadSeqs const & readSeqs)
         std::cerr << "Library stddev:\t\t\t" << libraryDev << std::endl;
     }
 
-//    if (!me.options.libraryLength) me.options.libraryLength = std::round(libraryMean);
-//    if (!me.options.libraryError) me.options.libraryError = std::round(libraryDev);
+    if (me.options.libraryLength) libraryMean = me.options.libraryLength;
+    if (me.options.libraryError) libraryDev = me.options.libraryError;
 
     resize(me.primaryMatchesProbs, getReadsCount(readSeqs), 0.0, Exact());
 
