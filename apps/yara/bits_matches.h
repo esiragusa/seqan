@@ -822,7 +822,6 @@ findMates(TMatches const & mates, TMatch const & match,
     typedef typename Size<TReadSeqs>::Type          TReadId;
     typedef typename Value<TReadSeqs const>::Type   TReadSeq;
     typedef typename Size<TReadSeq>::Type           TReadSeqSize;
-    typedef typename Size<TContigSeqs>::Type        TContigSeqSize;
 
     TReadId mateId = getMateId(readSeqs, getMember(match, ReadId()));
     TReadSeqSize mateLength = length(readSeqs[mateId]);
