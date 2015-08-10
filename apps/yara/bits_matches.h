@@ -810,14 +810,14 @@ inline void sortMatches(TMatches SEQAN_FORWARD_ARG matches)
 }
 
 // ----------------------------------------------------------------------------
-// Function findMates()
+// Function findProperMates()
 // ----------------------------------------------------------------------------
 
 template <typename TMatches, typename TMatch, typename TReadSeqs, typename TContigSeqs, typename TNumber1, typename TNumber2>
 inline typename Infix<TMatches const>::Type
-findMates(TMatches const & mates, TMatch const & match,
-          TReadSeqs const & readSeqs, TContigSeqs const & contigSeqs,
-          TNumber1 mean, TNumber2 stdDev)
+findProperMates(TMatches const & mates, TMatch const & match,
+                TReadSeqs const & readSeqs, TContigSeqs const & contigSeqs,
+                TNumber1 mean, TNumber2 stdDev)
 {
     typedef typename Iterator<TMatches const>::Type TIter;
     typedef typename Size<TReadSeqs>::Type          TReadId;
@@ -929,7 +929,7 @@ inline double getMatchProb(TErrorRate errorRate, TErrorRate optimalRate, TCount 
 template <typename TSpec, typename TMean, typename TStdDev>
 inline double getLibraryProb(Match<TSpec> const & one, Match<TSpec> const & two, TMean mean, TStdDev stdDev)
 {
-    if (!isProper(one, two, mean, stdDev)) return 0.001;
+    if (!isProper(one, two, mean, stdDev)) return 0.0009; // 0.001 * 0.90
 
     double libraryDev = getLibraryDeviation(one, two, mean);
     double libraryScore = (double)libraryDev / stdDev;
@@ -969,7 +969,7 @@ findPrimaryMatch(TMatches const & firstMatches,
         TMatch const & firstMatch = value(firstMatchesIt);
         double firstMatchWeight = 0;
 
-        TMatches const & mates = findMates(secondMatches, firstMatch, readSeqs, contigSeqs, mean, stdDev);
+        TMatches const & mates = findProperMates(secondMatches, firstMatch, readSeqs, contigSeqs, mean, stdDev);
 
         forEach(mates, [&](TMatch const & secondMatch)
         {
