@@ -320,6 +320,7 @@ inline void addContigPosition(Match<TSpec> & me, TDelta delta, TContigSeqs const
 {
     typedef typename Member<Match<TSpec>, ContigSize>::Type TContigSize;
 
+    SEQAN_ASSERT_GEQ(delta, 0u);
     TContigSize contigLength = length(contigSeqs[getMember(me, ContigId())]);
     me.contigBegin = (me.contigBegin + me.contigEnd + delta < contigLength) ?
                       me.contigBegin + delta : contigLength - me.contigEnd;
@@ -332,7 +333,8 @@ inline void addContigPosition(Match<TSpec> & me, TDelta delta, TContigSeqs const
 template <typename TSpec, typename TDelta>
 inline void subContigPosition(Match<TSpec> & me, TDelta delta)
 {
-    me.contigBegin = (me.contigBegin - delta > 0) ? me.contigBegin - delta : 0;
+    SEQAN_ASSERT_GEQ(delta, 0u);
+    me.contigBegin = (me.contigBegin > delta) ? me.contigBegin - delta : 0;
 }
 
 // ----------------------------------------------------------------------------
