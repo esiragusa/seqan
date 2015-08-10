@@ -846,10 +846,6 @@ inline void rankMatches(Mapper<TSpec, TConfig> & me, TReadSeqs const & readSeqs)
 
     // Sort matches by errors.
     forEach(me.matchesSetByErrors, sortMatches<TMatchesViewSetValue, Errors>, typename TTraits::TThreading());
-    stop(me.timer);
-    me.stats.sortMatches += getValue(me.timer);
-    if (me.options.verbose > 1)
-        std::cerr << "Sorting time:\t\t\t" << me.timer << std::endl;
 
     // Select all co-optimal matches.
     assign(me.optimalMatchesSet, me.matchesSetByErrors);
@@ -902,6 +898,11 @@ inline void rankMatches(Mapper<TSpec, TConfig> & me, TReadSeqs const & readSeqs)
     },
     Standard(), typename TTraits::TThreading());
 
+    stop(me.timer);
+    me.stats.sortMatches += getValue(me.timer);
+    if (me.options.verbose > 1)
+        std::cerr << "Sorting time:\t\t\t" << me.timer << std::endl;
+
     // Update mapped reads.
     unsigned long mappedReads = 0;
     if (me.options.verbose > 0)
@@ -915,6 +916,7 @@ inline void rankMatches(Mapper<TSpec, TConfig> & me, TReadSeqs const & readSeqs)
 
     if (IsSameType<typename TConfig::TSequencing, SingleEnd>::VALUE) return;
 
+    start(me.timer);
     // Collect library lengths from unique pairs.
     TLibraryLengths libraryLengths;
     reserve(libraryLengths, getPairsCount(readSeqs), Exact());
@@ -1021,6 +1023,9 @@ inline void rankMatches(Mapper<TSpec, TConfig> & me, TReadSeqs const & readSeqs)
 //        }
     },
     typename TTraits::TThreading());
+
+    stop(me.timer);
+    me.stats.selectPairs += getValue(me.timer);
 
     // Update paired reads.
     unsigned long pairedReads = 0;
