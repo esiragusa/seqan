@@ -200,6 +200,7 @@ struct MapperTraits
     typedef ModifiedString<TMatches, ModPos<TMatchesPositions> >    TMatchesView;
     typedef StringSet<TMatchesView, Segment<TMatchesView> >         TMatchesViewSet;
     typedef ModifiedString<TMatchesView, ModPos<TMatchesPositions> > TMatchesViewView;
+    typedef String<double>                                          TMatchesProbs;
 
     typedef String<CigarElement<> >                                 TCigar;
     typedef StringSet<TCigar, Segment<TCigar> >                     TCigarSet;
@@ -284,6 +285,7 @@ struct Mapper
     typename Traits::TMatchesViewSet    optimalMatchesSet;
     typename Traits::TMatchesViewSet    suboptimalMatchesSet;
     typename Traits::TMatchesViewView   primaryMatches;
+    typename Traits::TMatchesProbs      primaryMatchesProbs;
 
     typename Traits::TCigar             cigars;
     typename Traits::TCigarSet          cigarSet;
@@ -819,9 +821,11 @@ inline void rankMatches(Mapper<TSpec, TConfig> & me, TReadSeqs const & readSeqs)
 {
     typedef MapperTraits<TSpec, TConfig>                    TTraits;
     typedef typename TTraits::TMatch                        TMatch;
+    typedef typename TTraits::TMatchesPos                   TMatchesPos;
     typedef typename TTraits::TMatchesSet                   TMatchesSet;
     typedef typename TTraits::TMatchesViewSet               TMatchesViewSet;
     typedef typename Value<TMatchesSet const>::Type         TMatchesSetValue;
+    typedef typename Iterator<TMatchesSetValue const, Standard>::Type TMatchesSetValueIt;
     typedef typename Value<TMatchesViewSet const>::Type     TMatchesViewSetValue;
     typedef typename Iterator<TMatchesViewSet const, Standard>::Type TMatchesViewSetIt;
     typedef typename Size<TReadSeqs>::Type                  TReadId;
@@ -953,27 +957,68 @@ inline void rankMatches(Mapper<TSpec, TConfig> & me, TReadSeqs const & readSeqs)
 //    if (!me.options.libraryLength) me.options.libraryLength = std::round(libraryMean);
 //    if (!me.options.libraryError) me.options.libraryError = std::round(libraryDev);
 
+    resize(me.primaryMatchesProbs, getReadsCount(readSeqs), 0.0, Exact());
+
     // Enumerate feasible pairs.
     forAllMatchesPairs(me.matchesSetByCoord, readSeqs, [&](TMatchesSetValue const & firstMatches, TMatchesSetValue const & secondMatches)
     {
-        // First mate match with all second mate matches.
-        forEach(firstMatches, [&](TMatch const & firstMatch)
-        {
-            TMatchesSetValue const & secondMates = findMates(secondMatches, firstMatch, readSeqs, me.contigs.seqs, libraryMean, libraryDev);
-            if (!empty(secondMates)) setPaired(me.ctx, getMember(firstMatch, ReadId()));
+        TReadId firstId = getMember(front(firstMatches), ReadId());
+        TReadId secondId = getMember(front(secondMatches), ReadId());
 
-//            forEach(secondMates, [&](TMatch const & secondMatch)
-//            {
-//                SEQAN_ASSERT_EQ(getMember(firstMatch, ContigId()), getMember(secondMatch, ContigId()));
-//            });
-        });
+        double firstMatchOptimalRate = toErrorRate(readSeqs, firstId, getMinErrors(me.ctx, firstId));
+        double secondMatchOptimalRate = toErrorRate(readSeqs, secondId, getMinErrors(me.ctx, secondId));
+
+        // First mate match with all second mate matches.
+        Pair<TMatchesSetValueIt, double> firstPrimary =
+        findPrimaryMatch(firstMatches, secondMatches,
+                         firstMatchOptimalRate, secondMatchOptimalRate,
+                         readSeqs, me.contigs.seqs,
+                         libraryMean, libraryDev);
 
         // Second mate match with all first mate matches.
-        forEach(secondMatches, [&](TMatch const & secondMatch)
-        {
-            TMatchesSetValue const & firstMates = findMates(firstMatches, secondMatch, readSeqs, me.contigs.seqs, libraryMean, libraryDev);
-            if (!empty(firstMates)) setPaired(me.ctx, getMember(secondMatch, ReadId()));
-        });
+        Pair<TMatchesSetValueIt, double> secondPrimary =
+        findPrimaryMatch(secondMatches, firstMatches,
+                         secondMatchOptimalRate, firstMatchOptimalRate,
+                         readSeqs, me.contigs.seqs,
+                         libraryMean, libraryDev);
+
+        // No feasible pair found.
+        if (atEnd(getValueI1(firstPrimary), firstMatches) || atEnd(getValueI1(secondPrimary), secondMatches))
+            return;
+
+        // Get matches by coords positions.
+        TMatchesPos firstPosByCoord = stringSetPositions(me.matchesSetByCoord)[firstId] +
+                                      position(getValueI1(firstPrimary), firstMatches);
+        TMatchesPos secondPosByCoord = stringSetPositions(me.matchesSetByCoord)[secondId] +
+                                       position(getValueI1(secondPrimary), secondMatches);
+
+        // Translate matches by coords positions into in matches by errors positions.
+        auto firstPosBegin = begin(cargo(me.matchesByErrors), Standard()) + stringSetPositions(me.matchesSetByErrors)[firstId];
+        auto firstPosEnd = firstPosBegin + length(me.matchesSetByErrors[firstId]);
+        auto firstPos = std::find(firstPosBegin, firstPosEnd, firstPosByCoord);
+        auto firstPosByErrors = position(firstPos, cargo(me.matchesByErrors));
+
+        auto secondPosBegin = begin(cargo(me.matchesByErrors), Standard()) + stringSetPositions(me.matchesSetByErrors)[secondId];
+        auto secondPosEnd = secondPosBegin + length(me.matchesSetByErrors[secondId]);
+        auto secondPos = std::find(secondPosBegin, secondPosEnd, secondPosByCoord);
+        auto secondPosByErrors = position(secondPos, cargo(me.matchesByErrors));
+
+        // Set primary matches positions.
+        setPosition(me.primaryMatches, firstId, firstPosByErrors);
+        setPosition(me.primaryMatches, secondId, secondPosByErrors);
+        SEQAN_ASSERT(isEqual(value(getValueI1(firstPrimary)), me.primaryMatches[firstId]));
+        SEQAN_ASSERT(isEqual(value(getValueI1(secondPrimary)), me.primaryMatches[secondId]));
+
+        // Set primary matches probabilities.
+        me.primaryMatchesProbs[firstId] = getValueI2(firstPrimary);
+        me.primaryMatchesProbs[secondId] = getValueI2(secondPrimary);
+
+        // Set reads as properly paired.
+//        if (isProper(firstBest, secondBest, config))
+//        {
+            setPaired(me.ctx, firstId);
+            setPaired(me.ctx, secondId);
+//        }
     },
     typename TTraits::TThreading());
 
@@ -1043,7 +1088,8 @@ inline void writeMatches(Mapper<TSpec, TConfig> & me)
 
     start(me.timer);
     TMatchesWriter writer(me.outputFile,
-                          me.suboptimalMatchesSet, me.primaryMatches, me.cigarSet,
+                          me.suboptimalMatchesSet,
+                          me.primaryMatches, me.primaryMatchesProbs, me.cigarSet,
                           me.ctx, me.reads,
                           me.options);
     stop(me.timer);
