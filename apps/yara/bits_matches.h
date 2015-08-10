@@ -822,6 +822,7 @@ findMates(TMatches const & mates, TMatch const & match,
     typedef typename Size<TReadSeqs>::Type          TReadId;
     typedef typename Value<TReadSeqs const>::Type   TReadSeq;
     typedef typename Size<TReadSeq>::Type           TReadSeqSize;
+    typedef typename Size<TContigSeqs>::Type        TContigSeqSize;
 
     TReadId mateId = getMateId(readSeqs, getMember(match, ReadId()));
     TReadSeqSize mateLength = length(readSeqs[mateId]);
@@ -837,14 +838,14 @@ findMates(TMatches const & mates, TMatch const & match,
     // --> ... mate
     if (onForwardStrand(match))
     {
-        addContigPosition(mateLeq, mean - 6 * stdDev - mateLength, contigSeqs);
-        addContigPosition(mateGeq, mean + 6 * stdDev - mateLength, contigSeqs);
+        addContigPosition(mateLeq, _max(0u, mean - 6 * stdDev - mateLength), contigSeqs);
+        addContigPosition(mateGeq, _max(0u, mean + 6 * stdDev - mateLength), contigSeqs);
     }
     // mate ... <--
     else
     {
-        subContigPosition(mateLeq, mean + 6 * stdDev - mateLength);
-        subContigPosition(mateGeq, mean - 6 * stdDev - mateLength);
+        subContigPosition(mateLeq, _max(0u, mean + 6 * stdDev - mateLength));
+        subContigPosition(mateGeq, _max(0u, mean - 6 * stdDev - mateLength));
     }
 
     TIter first = std::lower_bound(begin(mates, Standard()), end(mates, Standard()), mateLeq, MatchSorter<TMatch, ContigBegin>());
@@ -937,6 +938,61 @@ inline double getLibraryProb(Match<TSpec> const & one, Match<TSpec> const & two,
     return std::erfc((double)libraryScore / SQRT_2);
 
 //    return 1.0 - 2.0 * zScore(libraryScore);
+}
+
+// ----------------------------------------------------------------------------
+// Function findPrimaryMatch()
+// ----------------------------------------------------------------------------
+
+template <typename TMatches, typename TErrorRate, typename TReadSeqs, typename TContigSeqs,
+          typename TNumber1, typename TNumber2>
+inline Pair<typename Iterator<TMatches, Standard>::Type, double>
+findPrimaryMatch(TMatches const & firstMatches,
+                 TMatches const & secondMatches,
+                 TErrorRate firstOptimalRate,
+                 TErrorRate secondOptimalRate,
+                 TReadSeqs const & readSeqs,
+                 TContigSeqs const & contigSeqs,
+                 TNumber1 mean,
+                 TNumber2 stdDev)
+{
+    typedef typename Value<TMatches const>::Type                TMatch;
+    typedef typename Iterator<TMatches const, Standard>::Type   TMatchesIt;
+    typedef Pair<TMatchesIt, double>                            TPair;
+
+    double firstMatchesWeightSum = 0;
+    double firstMatchWeightMax = 0;
+    TMatchesIt firstMatchBestIt = end(firstMatches, Standard());
+
+    iterate(firstMatches, [&](TMatchesIt firstMatchesIt)
+    {
+        TMatch const & firstMatch = value(firstMatchesIt);
+        double firstMatchWeight = 0;
+
+        TMatches const & mates = findMates(secondMatches, firstMatch, readSeqs, contigSeqs, mean, stdDev);
+
+        forEach(mates, [&](TMatch const & secondMatch)
+        {
+            double secondErrorRate = getErrorRate(secondMatch, readSeqs);
+            firstMatchWeight += getMatchWeight(secondErrorRate, secondOptimalRate);
+        });
+
+        double firstErrorRate = getErrorRate(firstMatch, readSeqs);
+        firstMatchWeight *= getMatchWeight(firstErrorRate, firstOptimalRate);
+
+        if (firstMatchWeight > firstMatchWeightMax)
+        {
+            firstMatchWeightMax = firstMatchWeight;
+            firstMatchBestIt = firstMatchesIt;
+        }
+
+        firstMatchesWeightSum += firstMatchWeight;
+    },
+    Standard(), Serial());
+
+    double firstMatchBestProb = firstMatchWeightMax / firstMatchesWeightSum;
+
+    return TPair(firstMatchBestIt, firstMatchBestProb);
 }
 
 // ----------------------------------------------------------------------------
