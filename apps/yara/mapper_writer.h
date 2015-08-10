@@ -483,7 +483,7 @@ inline void _fillMateInfoImpl(MatchesWriter<TSpec, Traits> & me, TReadId readId,
 template <typename TSpec, typename Traits, typename TMatch>
 inline void _fillMatePosition(MatchesWriter<TSpec, Traits> & me, TMatch const & match, TMatch const & mate)
 {
-    if (orientationEqual(match, mate, me.options.libraryOrientation))
+    if (orientationProper(match, mate))
         me.record.flag |= BAM_FLAG_ALL_PROPER;
 
     if (onReverseStrand(mate))

@@ -926,7 +926,7 @@ inline void rankMatches(Mapper<TSpec, TConfig> & me, TReadSeqs const & readSeqs)
             TMatch const & firstMatch = front(firstMatches);
             TMatch const & secondMatch = front(secondMatches);
 
-            if (contigEqual(firstMatch, secondMatch) && orientationEqual(firstMatch, secondMatch, LibraryOrientation()))
+            if (contigEqual(firstMatch, secondMatch) && orientationProper(firstMatch, secondMatch))
                 appendValue(libraryLengthsAppender, getLibraryLength(firstMatch, secondMatch), Insist(), typename TTraits::TThreading());
         }
     },

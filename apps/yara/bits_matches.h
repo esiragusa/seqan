@@ -634,11 +634,12 @@ getLibraryDeviation(Match<TSpec> const & a, Match<TSpec> const & b, TSize meanLe
 }
 
 // ----------------------------------------------------------------------------
-// Function orientationEqual()
+// Function orientationProper()
 // ----------------------------------------------------------------------------
+// Check orientation --> ... <--
 
 template <typename TSpec>
-inline bool orientationEqual(Match<TSpec> const & one, Match<TSpec> const & two, LibraryOrientation)// orientation)
+inline bool orientationProper(Match<TSpec> const & one, Match<TSpec> const & two)
 {
     bool oneBeforeTwo = getMember(one, ContigBegin()) < getMember(two, ContigBegin());
 
@@ -650,11 +651,11 @@ inline bool orientationEqual(Match<TSpec> const & one, Match<TSpec> const & two,
 // Function isProper()
 // ----------------------------------------------------------------------------
 
-template <typename TSpec, typename TLibraryConfig>
-inline bool isProper(Match<TSpec> const & one, Match<TSpec> const & two, TLibraryConfig const & config)
+template <typename TSpec, typename TMean, typename TStdDev>
+inline bool isProper(Match<TSpec> const & one, Match<TSpec> const & two, TMean mean, TStdDev stdDev)
 {
-    return orientationEqual(one, two, config.orientation) &&
-           getLibraryDeviation(one, two, config.mean) < 6 * config.stdDev;
+    return orientationProper(one, two) &&
+           getLibraryDeviation(one, two, mean) < 6 * stdDev;
 }
 
 // ============================================================================
@@ -925,13 +926,13 @@ inline double getMatchProb(TErrorRate errorRate, TErrorRate optimalRate, TCount 
 // Function getLibraryProb()
 // ----------------------------------------------------------------------------
 
-template <typename TSpec, typename TLibraryConfig>
-inline double getLibraryProb(Match<TSpec> const & one, Match<TSpec> const & two, TLibraryConfig const & config)
+template <typename TSpec, typename TMean, typename TStdDev>
+inline double getLibraryProb(Match<TSpec> const & one, Match<TSpec> const & two, TMean mean, TStdDev stdDev)
 {
-    if (!isProper(one, two, config)) return 0.0;
+    if (!isProper(one, two, mean, stdDev)) return 0.001;
 
-    double libraryDev = getLibraryDeviation(one, two, config.mean);
-    double libraryScore = libraryDev / config.stdDev;
+    double libraryDev = getLibraryDeviation(one, two, mean);
+    double libraryScore = libraryDev / stdDev;
 
     static const double SQRT_2 = 1.41421356237;
     return std::erfc((double)libraryScore / SQRT_2);
