@@ -934,23 +934,24 @@ inline double getLibraryProb(Match<TSpec> const & one, Match<TSpec> const & two,
     double libraryDev = getLibraryDeviation(one, two, mean);
     double libraryScore = (double)libraryDev / stdDev;
 
+    // 1.0 - 2.0 * zScore(libraryScore)
     static const double SQRT_2 = 1.41421356237;
     return std::max(0.001, std::erfc((double)libraryScore / SQRT_2));
-
-//    return 1.0 - 2.0 * zScore(libraryScore);
 }
 
 // ----------------------------------------------------------------------------
 // Function findPrimaryMatch()
 // ----------------------------------------------------------------------------
 
-template <typename TMatches, typename TErrorRate, typename TReadSeqs, typename TContigSeqs,
+template <typename TMatches, typename TErrorRate, typename TCount, typename TReadSeqs, typename TContigSeqs,
           typename TMean, typename TStdDev>
 inline Pair<typename Iterator<TMatches, Standard>::Type, double>
 findPrimaryMatch(TMatches const & firstMatches,
                  TMatches const & secondMatches,
                  TErrorRate firstOptimalRate,
                  TErrorRate secondOptimalRate,
+                 TCount secondOptimalCount,
+                 TCount secondSubCount,
                  TReadSeqs const & readSeqs,
                  TContigSeqs const & contigSeqs,
                  TMean mean,
