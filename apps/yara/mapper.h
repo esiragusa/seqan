@@ -970,10 +970,17 @@ inline void rankMatches(Mapper<TSpec, TConfig> & me, TReadSeqs const & readSeqs)
         double firstMatchOptimalRate = toErrorRate(readSeqs, firstId, getMinErrors(me.ctx, firstId));
         double secondMatchOptimalRate = toErrorRate(readSeqs, secondId, getMinErrors(me.ctx, secondId));
 
+        auto firstBestCount = countMatchesInBestStratum(me.optimalMatchesSet[firstId]);
+        auto firstSubCount = length(me.suboptimalMatchesSet[firstId]) - firstBestCount;
+
+        auto secondBestCount = countMatchesInBestStratum(me.optimalMatchesSet[secondId]);
+        auto secondSubCount = length(me.suboptimalMatchesSet[secondId]) - secondBestCount;
+
         // First mate match with all second mate matches.
         Pair<TMatchesSetValueIt, double> firstPrimary =
         findPrimaryMatch(firstMatches, secondMatches,
                          firstMatchOptimalRate, secondMatchOptimalRate,
+                         secondBestCount, secondSubCount,
                          readSeqs, me.contigs.seqs,
                          libraryMean, libraryDev);
 
@@ -981,6 +988,7 @@ inline void rankMatches(Mapper<TSpec, TConfig> & me, TReadSeqs const & readSeqs)
         Pair<TMatchesSetValueIt, double> secondPrimary =
         findPrimaryMatch(secondMatches, firstMatches,
                          secondMatchOptimalRate, firstMatchOptimalRate,
+                         firstBestCount, firstSubCount,
                          readSeqs, me.contigs.seqs,
                          libraryMean, libraryDev);
 

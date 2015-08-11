@@ -908,7 +908,8 @@ inline double getStratumWeight(TErrorRate errorRate, TErrorRate optimalRate, TCo
 template <typename TErrorRate, typename TCount>
 inline double getFirstTwoStrataWeight(TErrorRate optimalRate, TCount optimalCount, TCount subCount)
 {
-    return optimalCount * getMatchWeight(optimalRate, optimalRate) + subCount * getMatchWeight(optimalRate + 0.01, optimalRate);
+    return getStratumWeight(optimalRate, optimalRate, optimalCount) +
+           getStratumWeight(optimalRate + 0.01, optimalRate, subCount);
 }
 
 // ----------------------------------------------------------------------------
@@ -970,6 +971,9 @@ findPrimaryMatch(TMatches const & firstMatches,
         TMatch const & firstMatch = value(firstMatchesIt);
         double firstMatchWeight = 0;
 
+        TCount secondOptimalImproperCount = secondOptimalCount;
+        TCount secondSubImproperCount = secondSubCount;
+
         TMatches const & mates = findProperMates(secondMatches, firstMatch, readSeqs, contigSeqs, mean, stdDev);
 
         forEach(mates, [&](TMatch const & secondMatch)
@@ -977,7 +981,15 @@ findPrimaryMatch(TMatches const & firstMatches,
             double secondErrorRate = getErrorRate(secondMatch, readSeqs);
             firstMatchWeight += getMatchWeight(secondErrorRate, secondOptimalRate) *
                                 getLibraryProb(firstMatch, secondMatch, mean, stdDev);
+
+            if (secondErrorRate == secondOptimalRate)
+                --secondOptimalImproperCount;
+            else if (secondErrorRate == secondOptimalRate + 0.01)
+                --secondSubImproperCount;
         });
+
+        firstMatchWeight += (getStratumWeight(secondOptimalRate, secondOptimalRate, secondOptimalImproperCount) +
+                             getStratumWeight(secondOptimalRate + 0.01, secondOptimalRate, secondSubImproperCount)) * 0.0009;
 
         double firstErrorRate = getErrorRate(firstMatch, readSeqs);
         firstMatchWeight *= getMatchWeight(firstErrorRate, firstOptimalRate);
