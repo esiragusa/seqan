@@ -991,28 +991,34 @@ findPrimaryMatch(TMatches const & firstMatches,
 
         forEach(mates, [&](TMatch const & secondMatch)
         {
+            // Sum weights of proper match.
             double secondErrorRate = getErrorRate(secondMatch, readSeqs);
             firstMatchWeight += getMatchWeight(secondErrorRate, secondOptimalRate) *
                                 getLibraryProb(firstMatch, secondMatch, mean, stdDev);
 
+            // Decrease number of improper matches.
             if (secondErrorRate == secondOptimalRate)
                 --secondOptimalImproperCount;
             else if (secondErrorRate == secondOptimalRate + 0.01)
                 --secondSubImproperCount;
         });
 
+        // Sum weights of improper matches.
         firstMatchWeight += (getStratumWeight(secondOptimalRate, secondOptimalRate, secondOptimalImproperCount) +
-                             getStratumWeight(secondOptimalRate + 0.01, secondOptimalRate, secondSubImproperCount)) * 0.0009;
+                             getStratumWeight(secondOptimalRate + 0.01, secondOptimalRate, secondSubImproperCount) +
+                             getResidualWeight(secondOptimalRate)) * 0.0009;
 
         double firstErrorRate = getErrorRate(firstMatch, readSeqs);
         firstMatchWeight *= getMatchWeight(firstErrorRate, firstOptimalRate);
 
+        // Update best matches.
         if (firstMatchWeight > firstMatchWeightMax)
         {
             firstMatchWeightMax = firstMatchWeight;
             firstMatchBestIt = firstMatchesIt;
         }
 
+        // Update sum of weights.
         firstMatchesWeightSum += firstMatchWeight;
     },
     Standard(), Serial());
