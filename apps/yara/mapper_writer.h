@@ -217,7 +217,7 @@ inline void appendReadGroup(BamAlignmentRecord & record, TString const & rg)
 template <typename TProb>
 inline unsigned getMapq(TProb p)
 {
-    return std::round(-10.0 * std::log10(1.0 - std::min(p, 0.99999)));
+    return std::round(-10.0 * std::log10(1.0 - std::min(p, 0.9999999)));
 }
 
 // ----------------------------------------------------------------------------
