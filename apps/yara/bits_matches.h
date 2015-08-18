@@ -879,6 +879,18 @@ inline void forAllMatchesPairs(TMatchesSet const & matchesSet, TReadSeqs const &
 }
 
 // ----------------------------------------------------------------------------
+// Function getResidualWeight()
+// ----------------------------------------------------------------------------
+// Residual weight of unseen strata.
+
+template <typename TErrorRate>
+inline double getResidualWeight(TErrorRate errorRate)
+{
+    double p = std::pow(10.0, std::min(2.0, 100.0 * errorRate - 7.0));
+    return p / (1.0 - p);
+}
+
+// ----------------------------------------------------------------------------
 // Function getMatchWeight()
 // ----------------------------------------------------------------------------
 // Weight of one match.
@@ -909,7 +921,8 @@ template <typename TErrorRate, typename TCount>
 inline double getFirstTwoStrataWeight(TErrorRate optimalRate, TCount optimalCount, TCount subCount)
 {
     return getStratumWeight(optimalRate, optimalRate, optimalCount) +
-           getStratumWeight(optimalRate + 0.01, optimalRate, subCount);
+           getStratumWeight(optimalRate + 0.01, optimalRate, subCount) +
+           getResidualWeight(optimalRate);
 }
 
 // ----------------------------------------------------------------------------
