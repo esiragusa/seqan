@@ -603,7 +603,7 @@ public:
     MasonSimulatorOptions const * options;
 
     // The random number generator to use for this thread; we keep a separate one around for methylation simulation.
-    TRng rng, methRng;
+    TRng rng, fragRng, methRng;
 
     // The ids of the fragments.
     std::vector<int> fragmentIds;
@@ -639,12 +639,13 @@ public:
     void init(int seed, int methSeed, MasonSimulatorOptions const & newOptions)
     {
         rng.seed(seed);
+        fragRng.seed(seed);
         methRng.seed(methSeed);
         options = &newOptions;
         buildAlignments = !empty(options->outFileNameSam);
 
         // Initialize fragment generator here with reference to RNG and options.
-        fragSampler = new FragmentSampler(rng, options->fragSamplerOptions);
+        fragSampler = new FragmentSampler(fragRng, options->fragSamplerOptions);
 
         // Create sequencing simulator.
         SequencingSimulatorFactory simFactory(rng, methRng, options->seqOptions, options->illuminaOptions,
@@ -814,7 +815,7 @@ public:
 
     // The random number generator to use for the simulation and a separate one for the methylation levels when
     // materalizing the contig.
-    TRng rng, methRng;
+    TRng rng, fragRng, methRng;
 
     // Threads used for simulation.
     std::vector<ReadSimulatorThread> threads;
@@ -862,7 +863,7 @@ public:
     std::unique_ptr<seqan::BamFileOut> outBamStream;
 
     MasonSimulatorApp(MasonSimulatorOptions const & options) :
-            options(options), rng(options.seed), methRng(options.methSeed),
+            options(options), rng(options.seed), fragRng(options.seed), methRng(options.methSeed),
             vcfMat(methRng,
                    toCString(options.matOptions.fastaFileName),
                    toCString(options.matOptions.vcfFileName),
